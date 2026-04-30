@@ -1,0 +1,356 @@
+import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import '../data/auth_repository.dart';
+import '../../../shared/theme/app_theme.dart';
+import '../../../core/constants/api_constants.dart';
+
+class LoginScreen extends StatefulWidget {
+  const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen>
+    with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
+  final _usernameCtrl = TextEditingController();
+  final _passwordCtrl = TextEditingController();
+  final _authRepo = AuthRepository();
+
+  bool _isLoading = false;
+  bool _obscurePassword = true;
+  String? _errorMessage;
+
+  late AnimationController _animCtrl;
+  late Animation<double> _fadeAnim;
+  late Animation<Offset> _slideAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _animCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    );
+    _fadeAnim = CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut);
+    _slideAnim = Tween<Offset>(
+      begin: const Offset(0, 0.1),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
+    _animCtrl.forward();
+  }
+
+  @override
+  void dispose() {
+    _animCtrl.dispose();
+    _usernameCtrl.dispose();
+    _passwordCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _onLogin() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      await _authRepo.login(
+        username: _usernameCtrl.text.trim(),
+        password: _passwordCtrl.text,
+      );
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/beranda');
+      }
+    } on DioException catch (e) {
+      final msg = e.response?.data?['message'] ??
+          e.response?.data?['errors']?['username']?[0] ??
+          'Terjadi kesalahan. Periksa koneksi internet.';
+      setState(() => _errorMessage = msg.toString());
+    } catch (e) {
+      setState(() => _errorMessage = 'Terjadi kesalahan tidak terduga.');
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const colorPrimaryDark = Color(0xFF2B3377);
+    const colorTextPrimary = Color(0xFF2B3377);
+    const colorTextSecondary = Color(0xFF4A55A2);
+    const colorInputBg = Color(0xFFF2F4FD);
+    const colorInputBorder = Color(0xFF909CE1);
+
+    return Scaffold(
+      backgroundColor: colorPrimaryDark,
+      body: SingleChildScrollView(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
+          child: IntrinsicHeight(
+            child: Column(
+              children: [
+                    // ── Bagian Atas: Ilustrasi SVG ──
+                    Expanded(
+                      flex: 1,
+                      child: SafeArea(
+                        bottom: false,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            alignment: Alignment.center,
+                            children: [
+                              // Background Wavy
+                              Positioned(
+                                bottom: -90, // <-- Dibuat minus agar turun ke bawah
+                                left: 0,
+                                right: 0,
+                                child: Image.asset(
+                                  'assets/images/bg-login.png',
+                                  fit: BoxFit.cover,
+                                ),
+                              ),
+                              // Gambar Ilustrasi Utama
+                              Padding(
+                                padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
+                                child: Image.asset(
+                                  'assets/images/login-page.png',
+                                  fit: BoxFit.contain,
+                                  height: 250, // <-- UBAH ANGKA INI UNTUK MENGATUR UKURANNYA
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // ── Bagian Bawah: Card Form Login ──
+                    Container(
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+                      ),
+                      padding: const EdgeInsets.fromLTRB(32, 30, 32, 32),
+                      child: FadeTransition(
+                        opacity: _fadeAnim,
+                        child: SlideTransition(
+                          position: _slideAnim,
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Title
+                                const Text(
+                                  'Masuk ke Akun.',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: colorTextPrimary,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                const Text(
+                                  'Masuk ke akun Anda untuk melanjutkan.',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: colorTextSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 32),
+
+                                // Error message
+                                if (_errorMessage != null) ...[
+                                  Container(
+                                    padding: const EdgeInsets.all(12),
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.danger.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                          color: AppTheme.danger.withValues(alpha: 0.3)),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(Icons.error_outline,
+                                            color: AppTheme.danger, size: 18),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            _errorMessage!,
+                                            style: TextStyle(
+                                                color: AppTheme.danger, fontSize: 13),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                ],
+
+                                // Username field
+                                TextFormField(
+                                  controller: _usernameCtrl,
+                                  keyboardType: TextInputType.text,
+                                  textInputAction: TextInputAction.next,
+                                  style: const TextStyle(color: colorTextPrimary),
+                                  decoration: InputDecoration(
+                                    hintText: 'Nama Pengguna',
+                                    hintStyle: const TextStyle(
+                                        color: colorTextSecondary, fontSize: 14),
+                                    filled: true,
+                                    fillColor: colorInputBg,
+                                    prefixIcon: const Icon(
+                                      Icons.person,
+                                      color: colorTextPrimary,
+                                      size: 20,
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 16),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                          color: colorInputBorder, width: 1.5),
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                          color: colorInputBorder, width: 1.5),
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                          color: colorTextPrimary, width: 2),
+                                    ),
+                                  ),
+                                  validator: (v) => (v == null || v.trim().isEmpty)
+                                      ? 'Nama Pengguna tidak boleh kosong'
+                                      : null,
+                                ),
+                                const SizedBox(height: 16),
+
+                                // Password field
+                                TextFormField(
+                                  controller: _passwordCtrl,
+                                  obscureText: _obscurePassword,
+                                  textInputAction: TextInputAction.done,
+                                  onFieldSubmitted: (_) => _onLogin(),
+                                  style: const TextStyle(color: colorTextPrimary),
+                                  decoration: InputDecoration(
+                                    hintText: 'Kata Sandi',
+                                    hintStyle: TextStyle(
+                                        color: colorTextSecondary.withValues(alpha: 0.6),
+                                        fontSize: 14),
+                                    filled: true,
+                                    fillColor: colorInputBg,
+                                    prefixIcon: const Icon(
+                                      Icons.lock,
+                                      color: colorTextPrimary,
+                                      size: 20,
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _obscurePassword
+                                            ? Icons.visibility_off
+                                            : Icons.visibility,
+                                        color: colorTextPrimary,
+                                        size: 20,
+                                      ),
+                                      onPressed: () => setState(
+                                          () => _obscurePassword = !_obscurePassword),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                        horizontal: 16, vertical: 16),
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    enabledBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: BorderSide.none,
+                                    ),
+                                    focusedBorder: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                      borderSide: const BorderSide(
+                                          color: colorTextPrimary, width: 1.5),
+                                    ),
+                                  ),
+                                  validator: (v) => (v == null || v.isEmpty)
+                                      ? 'Kata Sandi tidak boleh kosong'
+                                      : null,
+                                ),
+                                const SizedBox(height: 24),
+
+                                // Login button
+                                SizedBox(
+                                  height: 52,
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading ? null : _onLogin,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: colorPrimaryDark,
+                                      foregroundColor: Colors.white,
+                                      elevation: 0,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            width: 22,
+                                            height: 22,
+                                            child: CircularProgressIndicator(
+                                              color: Colors.white,
+                                              strokeWidth: 2.5,
+                                            ),
+                                          )
+                                        : const Text(
+                                            'Masuk',
+                                            style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight: FontWeight.bold),
+                                          ),
+                                  ),
+                                ),
+
+                                const SizedBox(height: 48),
+
+                                // Footer Logos
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    _buildNetworkLogo('/images/logo 1.png',
+                                        height: 32),
+                                    const SizedBox(width: 16),
+                                    _buildNetworkLogo('/images/mini_stesy 1.png',
+                                        height: 32),
+                                  ],
+                                ),
+                                const SizedBox(height: 16),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+    );
+  }
+
+  Widget _buildNetworkLogo(String path, {required double height}) {
+    return Image.asset(
+      'assets$path',
+      height: height,
+      errorBuilder: (context, error, stackTrace) => const SizedBox(),
+    );
+  }
+}
