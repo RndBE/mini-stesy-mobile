@@ -406,8 +406,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
                               // 2. Menu statis lainnya
                               _buildMenuCard(
                                 'Peta\nLokasi', 
-                                icon: Icons.map_outlined, 
-                                iconColor: Colors.orange,
+                                assetPath: 'assets/images/peta_lokasi.png',
                                 onTap: () {
                                   Navigator.pushNamed(context, '/peta');
                                 },

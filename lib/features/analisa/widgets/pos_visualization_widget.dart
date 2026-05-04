@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'well_animation_widget.dart';
 import 'river_animation_widget.dart';
+import 'awr_visualization_widget.dart';
 import '../screens/detail_analisa_screen.dart';
 
 class PosVisualizationWidget extends StatelessWidget {
@@ -19,36 +21,35 @@ class PosVisualizationWidget extends StatelessWidget {
     final nonjiatData = point['nonjiat_data'] as Map<String, dynamic>?;
     final loggerHealth = (point['logger_health'] as Map<String, dynamic>?) ?? {};
 
+    final isARR = kategori.contains('ARR');
+    final isAWLR = kategori.contains('AWLR');
+    final isAWR = kategori.contains('AWR');
+    final isAFMR = kategori.contains('AFMR');
+    final hideDataPengukuran = isARR || isAWR || isAWLR || isAFMR;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        if (isAWLR && subKategori == 'jiat')
+          _buildDataSumurCard(sensorData, isOnline),
+
         // ── Visualisasi Animasi
-        _buildSectionTitle('Visualisasi'),
-        const SizedBox(height: 8),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(12),
-          child: Container(
-            color: const Color(0xFFF8FAFC),
-            padding: const EdgeInsets.all(12),
-            child: _buildVisualization(
-                kategori, subKategori, sensorData,
-                jiatData, nonjiatData, isOnline),
-          ),
-        ),
+        _buildVisualization(
+            kategori, subKategori, sensorData,
+            jiatData, nonjiatData, isOnline),
 
-        const SizedBox(height: 16),
+        if (!hideDataPengukuran) ...[
+          const SizedBox(height: 12),
 
-        // ── Data Sensor Utama
-        _buildSectionTitle('Data Pengukuran'),
-        const SizedBox(height: 10),
-        _buildSensorCards(context, point['id_logger'].toString(), kategori, sensorData, isOnline),
+          // ── Data Sensor Utama
+          // ── Data Sensor Utama
+          _buildSensorCardsAsLogger(context, point['id_logger'].toString(), sensorData, isOnline),
+        ],
 
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
 
         // ── Health Logger
-        _buildSectionTitle('Kondisi Logger'),
-        const SizedBox(height: 10),
-        _buildHealthCards(context, point['id_logger'].toString(), loggerHealth, isOnline),
+        _buildDataLoggerCard(context, point['id_logger'].toString(), loggerHealth, isOnline),
       ],
     );
   }
@@ -61,140 +62,401 @@ class PosVisualizationWidget extends StatelessWidget {
     Map<String, dynamic>? nonjiatData,
     bool isOnline,
   ) {
-    if (kategori.contains('AWLR') || kategori.contains('AWQR') || kategori.contains('AWR')) {
+    if (kategori.contains('AWLR')) {
       // JIAT (Sumur)
       if (subKategori == 'jiat' && jiatData != null) {
         final kdlSumur = (jiatData['kedalaman_sumur'] as num?)?.toDouble();
         final kdlSensor = (jiatData['kedalaman_sensor'] as num?)?.toDouble();
         final kdlPompa = (jiatData['kedalaman_pompa'] as num?)?.toDouble();
-        final hasPump = jiatData['has_pump'] as bool? ?? false;
+        
+        final hasPump = (jiatData['has_pump'] == true) || 
+                        (kdlPompa != null && kdlPompa > 0);
+                        
         final mukaAir = (sensorData['muka_air_tanah'] as num?)?.toDouble() ??
             (sensorData['tma'] as num?)?.toDouble();
 
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Data Sumur (JIAT)',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500),
-            ),
-            const SizedBox(height: 8),
-            WellAnimationWidget(
-              kedalamanSumur: kdlSumur,
-              kedalamanSensor: kdlSensor,
-              kedalamanPompa: kdlPompa,
-              mukaAirTanah: mukaAir,
-              hasPump: hasPump,
-              isOnline: isOnline,
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildLegendItem(Colors.red.shade600, 'Sensor ${kdlSensor?.toStringAsFixed(1) ?? "-"} m'),
-                if (hasPump)
-                  _buildLegendItem(const Color(0xFFF59E0B), 'Pompa ${kdlPompa?.toStringAsFixed(1) ?? "-"} m'),
-                _buildLegendItem(Colors.blue.shade700, 'Air ${mukaAir?.toStringAsFixed(2) ?? "-"} m'),
-              ],
-            ),
-          ],
+        return Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.grey.shade200),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              WellAnimationWidget(
+                kedalamanSumur: kdlSumur,
+                kedalamanSensor: kdlSensor,
+                kedalamanPompa: kdlPompa,
+                mukaAirTanah: mukaAir,
+                hasPump: hasPump,
+                isOnline: isOnline,
+              ),
+            ],
+          ),
         );
       }
 
       // Non-JIAT (Sungai)
-      final tma = (sensorData['tma'] as num?)?.toDouble();
-      final elevMin = (nonjiatData?['elevasi_min'] as num?)?.toDouble();
-      final elevMax = (nonjiatData?['elevasi_max'] as num?)?.toDouble();
+      return _buildRiverCard(sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_tanah.svg');
+    }
+
+    // AFMR
+    if (kategori.contains('AFMR')) {
+      return _buildRiverCard(sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_afmr.svg', isAFMR: true);
+    }
+
+    // ARR - curah hujan
+    if (kategori.contains('ARR')) {
+      final hujanPerJam = (sensorData['curah_hujan_per_jam'] as num?)?.toDouble() ?? 
+                          (sensorData['curah_hujan'] as num?)?.toDouble() ?? 0.0;
+      final hujanHarian = (sensorData['curah_hujan_harian'] as num?)?.toDouble() ?? 0.0;
+      
       return Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Data Sungai',
-              style: TextStyle(fontSize: 11, color: Colors.grey.shade500)),
-          const SizedBox(height: 8),
-          RiverAnimationWidget(
-            tma: tma,
-            elevasiMin: elevMin,
-            elevasiMax: elevMax,
-            isOnline: isOnline,
-          ),
+          _buildRainfallCard('AKUMULASI HARIAN', hujanHarian, isOnline),
+          const SizedBox(height: 12),
+          _buildRainfallCard('AKUMULASI 1 JAM', hujanPerJam, isOnline),
         ],
       );
     }
 
-    // ARR - curah hujan (gauge sederhana)
-    if (kategori.contains('ARR')) {
-      final hujan = (sensorData['curah_hujan'] as num?)?.toDouble() ?? 0;
-      return _buildRainfallGauge(hujan, isOnline);
+    // AWR - Automatic Weather Station
+    if (kategori.contains('AWR')) {
+      return AwrVisualizationWidget(
+        idLogger: point['id_logger'].toString(),
+        sensorData: sensorData,
+        isOnline: isOnline,
+      );
     }
 
     // Default
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            Icon(Icons.sensors, size: 48, color: Colors.grey.shade400),
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Icon(Icons.sensors, size: 48, color: Colors.grey.shade400),
+          const SizedBox(height: 8),
+          Text('Visualisasi tidak tersedia',
+              style: TextStyle(color: Colors.grey.shade500)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRiverCard(Map<String, dynamic> sensorData, Map<String, dynamic>? nonjiatData, bool isOnline, String tiangAsset, {bool isAFMR = false}) {
+    final tma = (sensorData['tma'] as num?)?.toDouble();
+    final elevMin = (nonjiatData?['elevasi_min'] as num?)?.toDouble();
+    final debit = (sensorData['debit'] as num?)?.toDouble() ?? 0.0;
+    final elevMax = (nonjiatData?['elevasi_max'] as num?)?.toDouble();
+    
+    final luasPenampang = (sensorData['luas_penampang'] as num?)?.toDouble() ?? (sensorData['luas_penampang_basah'] as num?)?.toDouble() ?? 0.0;
+    final kecepatanAliran = (sensorData['kecepatan_aliran'] as num?)?.toDouble() ?? (sensorData['flow_velocity'] as num?)?.toDouble() ?? 0.0;
+    final elevSensor = (sensorData['elevasi_sensor'] as num?)?.toDouble() ?? 0.0;
+    final jarakSensor = (sensorData['jarak_sensor'] as num?)?.toDouble() ?? 0.0;
+    
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RiverAnimationWidget(
+            tma: tma,
+            elevasiMin: elevMin,
+            elevasiMax: isAFMR ? elevSensor : elevMax,
+            isOnline: isOnline,
+            tiangAsset: tiangAsset,
+          ),
+          const SizedBox(height: 12),
+          if (isAFMR) ...[
+            Row(
+              children: [
+                Expanded(child: _buildSungaiCardItem('LUAS PENAMPANG BASAH', luasPenampang, 'm²', isOnline, assetPath: 'assets/images/afmr/luas_penampang_air.svg')),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSungaiCardItem('DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
+              ],
+            ),
             const SizedBox(height: 8),
-            Text('Visualisasi tidak tersedia',
-                style: TextStyle(color: Colors.grey.shade500)),
+            Row(
+              children: [
+                Expanded(child: _buildSungaiCardItem('FLOW VELOCITY', kecepatanAliran, 'm/s', isOnline, assetPath: 'assets/images/afmr/flow_velocity.svg')),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSungaiCardItem('ELEVASI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(child: _buildSungaiCardItem('ELEVASI SENSOR', elevSensor, 'm', isOnline, assetPath: 'assets/images/afmr/elevasi_sensor.svg')),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSungaiCardItem('JARAK SENSOR', jarakSensor, 'm', isOnline, assetPath: 'assets/images/afmr/jarak_sensor.svg')),
+              ],
+            ),
+          ] else ...[
+            Row(
+              children: [
+                Expanded(child: _buildSungaiCardItem('TINGGI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
+                const SizedBox(width: 8),
+                Expanded(child: _buildSungaiCardItem('DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRainfallCard(String title, double hujan, bool isOnline) {
+    if (!isOnline) {
+      hujan = 0.0;
+    }
+
+    String imagePath = 'assets/images/klasifikasi_hujan/';
+    String labelKlasifikasi = '';
+    
+    if (hujan == 0) {
+      imagePath += 'tidak_hujan.png';
+      labelKlasifikasi = 'Berawan/Tidak Hujan';
+    } else if (hujan < 5) {
+      imagePath += 'hujan_sangat_ringan.png';
+      labelKlasifikasi = 'Hujan Sangat Ringan';
+    } else if (hujan < 20) {
+      imagePath += 'hujan_ringan.png';
+      labelKlasifikasi = 'Hujan Ringan';
+    } else if (hujan < 50) {
+      imagePath += 'hujan_sedang.png';
+      labelKlasifikasi = 'Hujan Sedang';
+    } else if (hujan < 100) {
+      imagePath += 'hujan_lebat.png';
+      labelKlasifikasi = 'Hujan Lebat';
+    } else {
+      imagePath += 'hujan_sangat_lebat.png';
+      labelKlasifikasi = 'Hujan Sangat Lebat';
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -20,
+            bottom: -20,
+            child: Opacity(
+              opacity: isOnline ? 1.0 : 0.4,
+              child: Image.asset(imagePath, height: 120, fit: BoxFit.contain),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(fontSize: 10, color: Colors.grey.shade800, letterSpacing: 0.5, fontWeight: FontWeight.w600),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      isOnline ? hujan.toStringAsFixed(3) : '0.00', 
+                      style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: isOnline ? Colors.black : Colors.grey)
+                    ),
+                    const SizedBox(width: 4),
+                    Text('mm', style: TextStyle(fontSize: 14, color: isOnline ? Colors.black : Colors.grey)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                if (labelKlasifikasi.isNotEmpty) ...[
+                  Text(
+                    labelKlasifikasi,
+                    style: TextStyle(fontSize: 13, color: isOnline ? const Color(0xFF0369A1) : Colors.grey.shade600, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataLoggerCard(BuildContext context, String idLogger, Map<String, dynamic> health, bool isOnline) {
+    final humidity = health['humidity']?.toString() ?? '--';
+    final battery = health['battery']?.toString() ?? '--';
+    final temp = health['temp']?.toString() ?? '--';
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              'Data Logger',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildDataLoggerSvgItem(context, idLogger, 'humidity_online.svg', 'humidity_offline.svg', Colors.blue, 'HUMIDITY', 'humidity_logger', '$humidity %', isOnline),
+                const SizedBox(width: 36),
+                _buildDataLoggerSvgItem(context, idLogger, 'battery_online.svg', 'battery_offline.svg', Colors.green, 'BATTERY', 'battery_logger', '$battery Volt', isOnline),
+                const SizedBox(width: 36),
+                _buildDataLoggerSvgItem(context, idLogger, 'temper_online.svg', 'temper_offline.svg', Colors.orange, 'TEMPERATURE', 'temp_logger', '$temp °C', isOnline),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDataLoggerItem(BuildContext context, String idLogger, IconData icon, Color color, String label, String parameterName, String value, bool isOnline) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailAnalisaScreen(
+              idLogger: idLogger,
+              parameterName: parameterName,
+              isOnline: isOnline,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        color: Colors.transparent, // Ensures the whole column area is clickable
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 36, color: isOnline ? color : Colors.grey),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: Colors.black , letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isOnline ? Colors.black : Colors.grey),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildRainfallGauge(double hujan, bool isOnline) {
-    final maxHujan = 100.0;
-    final ratio = (hujan / maxHujan).clamp(0.0, 1.0);
-    final barColor = hujan >= 50
-        ? Colors.red.shade500
-        : hujan >= 20
-            ? Colors.orange
-            : Colors.blue.shade400;
-
-    return Column(
-      children: [
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            Icon(Icons.cloudy_snowing, size: 32,
-                color: isOnline ? Colors.blue.shade400 : Colors.grey),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Curah Hujan', style: TextStyle(
-                      fontSize: 12, color: Colors.grey.shade600)),
-                  const SizedBox(height: 6),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(4),
-                    child: LinearProgressIndicator(
-                      value: ratio,
-                      backgroundColor: Colors.grey.shade200,
-                      valueColor: AlwaysStoppedAnimation(
-                          isOnline ? barColor : Colors.grey.shade400),
-                      minHeight: 14,
-                    ),
-                  ),
-                ],
-              ),
+  Widget _buildDataLoggerSvgItem(BuildContext context, String idLogger, String svgOnline, String svgOffline, Color color, String label, String parameterName, String value, bool isOnline) {
+    final svgPath = 'assets/images/beranda/${isOnline ? svgOnline : svgOffline}';
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailAnalisaScreen(
+              idLogger: idLogger,
+              parameterName: parameterName,
+              isOnline: isOnline,
             ),
-            const SizedBox(width: 12),
-            Text('${hujan.toStringAsFixed(1)}\nmm',
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                    color: isOnline ? barColor : Colors.grey)),
+          ),
+        );
+      },
+      child: Container(
+        color: Colors.transparent, // Ensures the whole column area is clickable
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            SvgPicture.asset(svgPath, width: 36, height: 36),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: TextStyle(fontSize: 10, color: Colors.black, letterSpacing: 0.5),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              value,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: isOnline ? Colors.black : Colors.grey),
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildSensorCards(
-      BuildContext context, String idLogger, String kategori, Map<String, dynamic> sensorData, bool isOnline) {
-    final cards = <Map<String, String>>[];
+  Widget _buildSensorCardsAsLogger(
+      BuildContext context, String idLogger, Map<String, dynamic> sensorData, bool isOnline) {
+    final items = <Widget>[];
 
     final tma = sensorData['tma'];
     final debit = sensorData['debit'];
@@ -202,144 +464,228 @@ class PosVisualizationWidget extends StatelessWidget {
     final elevasi = sensorData['elevasi_muka_air'];
     final airTanah = sensorData['muka_air_tanah'];
 
-    if (tma != null) cards.add({'label': 'TMA', 'value': '${(tma as num).toStringAsFixed(3)} m', 'icon': 'tma'});
-    if (debit != null) cards.add({'label': 'Debit', 'value': '${(debit as num).toStringAsFixed(3)} m³/s', 'icon': 'debit'});
-    if (hujan != null) cards.add({'label': 'Curah Hujan', 'value': '${(hujan as num).toStringAsFixed(1)} mm', 'icon': 'hujan'});
-    if (elevasi != null) cards.add({'label': 'Elevasi Muka Air', 'value': '${(elevasi as num).toStringAsFixed(3)} m', 'icon': 'elevasi'});
-    if (airTanah != null) cards.add({'label': 'Muka Air Tanah', 'value': '${(airTanah as num).toStringAsFixed(3)} m', 'icon': 'air_tanah'});
+    if (tma != null) items.add(_buildDataLoggerItem(context, idLogger, Icons.waves, Colors.blue, 'TMA', 'tma', '${(tma as num).toStringAsFixed(3)} m', isOnline));
+    if (debit != null) items.add(_buildDataLoggerItem(context, idLogger, Icons.speed, Colors.cyan, 'DEBIT', 'debit', '${(debit as num).toStringAsFixed(3)} m³/s', isOnline));
+    if (hujan != null) items.add(_buildDataLoggerItem(context, idLogger, Icons.cloudy_snowing, Colors.indigo, 'CURAH HUJAN', 'curah_hujan', '${(hujan as num).toStringAsFixed(1)} mm', isOnline));
+    if (elevasi != null) items.add(_buildDataLoggerItem(context, idLogger, Icons.height, Colors.teal, 'ELEVASI', 'elevasi_muka_air', '${(elevasi as num).toStringAsFixed(3)} m', isOnline));
+    if (airTanah != null) items.add(_buildDataLoggerItem(context, idLogger, Icons.landscape, Colors.brown, 'AIR TANAH', 'muka_air_tanah', '${(airTanah as num).toStringAsFixed(3)} m', isOnline));
 
-    if (cards.isEmpty) {
-      return Text('Tidak ada data sensor',
-          style: TextStyle(color: Colors.grey.shade400, fontSize: 13));
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
     }
 
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: cards
-          .map((c) => _buildSingleSensorCard(context, idLogger, c['label']!, c['value']!, isOnline))
-          .toList(),
-    );
-  }
-
-  Widget _buildSingleSensorCard(BuildContext context, String idLogger, String label, String value, bool isOnline) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DetailAnalisaScreen(
-              idLogger: idLogger,
-              parameterName: label,
-              isOnline: isOnline,
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              'Data Pengukuran',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
             ),
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: isOnline ? const Color(0xFFF0F9FF) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: isOnline
-                ? const Color(0xFF7DD3FC)
-                : Colors.grey.shade200,
+          Divider(height: 1, color: Colors.grey.shade200),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: items.map((item) => Expanded(child: item)).toList(),
+            ),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label,
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey.shade500,
-                    letterSpacing: 0.5)),
-            const SizedBox(height: 4),
-            Text(value,
-                style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: isOnline ? const Color(0xFF0369A1) : Colors.grey)),
-          ],
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildHealthCards(BuildContext context, String idLogger, Map<String, dynamic> health, bool isOnline) {
-    final humidity = health['humidity'];
-    final battery = health['battery'];
-    final temp = health['temp'];
 
-    return Row(
-      children: [
-        if (humidity != null)
-          Expanded(child: _buildHealthCard(context, idLogger, 'Kelembapan', '$humidity %',
-              Icons.water_drop_outlined, Colors.blue, isOnline)),
-        if (battery != null) ...[
-          const SizedBox(width: 8),
-          Expanded(child: _buildHealthCard(context, idLogger, 'Baterai', '$battery V',
-              Icons.battery_charging_full, Colors.green, isOnline)),
-        ],
-        if (temp != null) ...[
-          const SizedBox(width: 8),
-          Expanded(child: _buildHealthCard(context, idLogger, 'Suhu Logger', '$temp °C',
-              Icons.thermostat, Colors.orange, isOnline)),
-        ],
-      ],
-    );
-  }
 
-  Widget _buildHealthCard(BuildContext context, String idLogger, String label, String value, IconData icon,
-      Color color, bool isOnline) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => DetailAnalisaScreen(
-              idLogger: idLogger,
-              parameterName: label,
-              isOnline: isOnline,
+  Widget _buildCardSection({required String title, required Widget child}) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF1E293B),
             ),
           ),
-        );
-      },
-      child: Container(
-        padding: const EdgeInsets.all(10),
-        decoration: BoxDecoration(
-          color: isOnline ? color.withOpacity(0.06) : Colors.grey.shade50,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: isOnline ? color.withOpacity(0.3) : Colors.grey.shade200),
-        ),
-        child: Column(
-          children: [
-            Icon(icon, size: 20, color: isOnline ? color : Colors.grey),
-            const SizedBox(height: 6),
-            Text(value,
-                style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
-                    color: isOnline ? color : Colors.grey)),
-            Text(label,
-                style:
-                    TextStyle(fontSize: 9, color: Colors.grey.shade400)),
-          ],
-        ),
+          const SizedBox(height: 12),
+          child,
+        ],
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.bold,
-        color: Color(0xFF1E293B),
+  Widget _buildDataSumurCard(Map<String, dynamic> sensorData, bool isOnline) {
+    final tma = sensorData['tma'] ?? sensorData['muka_air_tanah'];
+    final valueText = tma != null ? '${(tma as num).toStringAsFixed(3)} m' : '-';
+
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Text(
+              'Data Sumur',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.black,
+              ),
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Image.asset(
+                  'assets/images/muka_air_tanah.png',
+                  width: 50,
+                  height: 50,
+                  fit: BoxFit.contain,
+                ),
+                const SizedBox(width: 16),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'MUKA AIR TANAH',
+                      style: TextStyle(
+                        fontSize: 10,
+                        color: Colors.black87,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      valueText,
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSungaiCardItem(String label, double value, String unit, bool isOnline, {IconData? icon, Color? color, String? assetPath}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          if (assetPath != null)
+            SvgPicture.asset(
+              assetPath,
+              width: 28,
+              height: 28,
+              colorFilter: !isOnline
+                  ? const ColorFilter.matrix(<double>[
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0, 0, 0, 1, 0,
+                    ])
+                  : null,
+            )
+          else if (icon != null && color != null)
+            Icon(icon, size: 28, color: isOnline ? color : Colors.grey),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey.shade600, letterSpacing: 0.5),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              const SizedBox(height: 4),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.baseline,
+                textBaseline: TextBaseline.alphabetic,
+                children: [
+                  Text(
+                    value.toStringAsFixed(3),
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: isOnline ? Colors.black : Colors.grey),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    unit,
+                    style: TextStyle(fontSize: 10, color: isOnline ? Colors.black87 : Colors.grey),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          ),
+        ],
       ),
     );
   }

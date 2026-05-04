@@ -261,24 +261,52 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
         // ── Tanggal & Hari
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-          child: Text(
-            DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now()),
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF475569), // Warna slate text
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
             ),
+          ),
+          child: StreamBuilder(
+            stream: Stream.periodic(const Duration(seconds: 1)),
+            builder: (context, snapshot) {
+              final now = DateTime.now();
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(now),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  Text(
+                    DateFormat('HH:mm:ss').format(now),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ],
+              );
+            }
           ),
         ),
         
         // ── Body Visualisasi Pos yang dipilih
         Expanded(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: _selectedPoint == null 
-                ? const SizedBox.shrink()
-                : PosVisualizationWidget(point: _selectedPoint!),
+          child: Container(
+            color: const Color(0xFFF4F6F8), // Latar belakang abu-abu terang
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: _selectedPoint == null 
+                  ? const SizedBox.shrink()
+                  : PosVisualizationWidget(point: _selectedPoint!),
+            ),
           ),
         ),
       ],

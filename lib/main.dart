@@ -3,7 +3,9 @@ import 'features/auth/screens/login_screen.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/beranda/screens/beranda_screen.dart';
 import 'features/peta/screens/peta_screen.dart';
+import 'features/onboarding/screens/onboarding_screen.dart';
 import 'shared/theme/app_theme.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,7 @@ class StesyApp extends StatelessWidget {
       themeMode: ThemeMode.system,
       home: const SplashRouter(),
       routes: {
+        '/onboarding': (_) => const OnboardingScreen(),
         '/login':   (_) => const LoginScreen(),
         '/beranda': (_) => const BerandaScreen(),
         '/peta':    (_) => const PetaScreen(),
@@ -59,6 +62,15 @@ class _SplashRouterState extends State<SplashRouter>
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    final isFirstTime = prefs.getBool('isFirstTime') ?? true;
+
+    if (isFirstTime) {
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/onboarding');
+      return;
+    }
 
     final isLoggedIn = await AuthRepository().isLoggedIn();
     if (!mounted) return;
