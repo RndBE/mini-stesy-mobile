@@ -16,15 +16,63 @@ class AwqrVisualizationWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tma = (sensorData['tma'] as num?)?.toDouble() ?? (sensorData['elevasi_muka_air'] as num?)?.toDouble() ?? 0.0;
-    final phAir = (sensorData['ph_air'] as num?)?.toDouble() ?? 0.0;
-    final suhuAir = (sensorData['suhu_air'] as num?)?.toDouble() ?? 0.0;
-    final orp = (sensorData['orp'] as num?)?.toDouble() ?? 0.0;
-    final conductivity = (sensorData['conductivity'] as num?)?.toDouble() ?? 0.0;
-    final salinity = (sensorData['salinity'] as num?)?.toDouble() ?? 0.0;
-    final tds = (sensorData['tds'] as num?)?.toDouble() ?? 0.0;
-    final turbidity = (sensorData['turbidity'] as num?)?.toDouble() ?? 0.0;
-    final tinggiSensor = (sensorData['elevasi_sensor'] as num?)?.toDouble() ?? 0.0;
+    final tma = (sensorData['tma'] as num?)?.toDouble() ?? (sensorData['elevasi_muka_air'] as num?)?.toDouble();
+    final phAir = (sensorData['ph_air'] as num?)?.toDouble();
+    final suhuAir = (sensorData['suhu_air'] as num?)?.toDouble();
+    final orp = (sensorData['orp'] as num?)?.toDouble();
+    final conductivity = (sensorData['conductivity'] as num?)?.toDouble();
+    final salinity = (sensorData['salinity'] as num?)?.toDouble();
+    final tds = (sensorData['tds'] as num?)?.toDouble();
+    final turbidity = (sensorData['turbidity'] as num?)?.toDouble();
+    final tinggiSensor = (sensorData['elevasi_sensor'] as num?)?.toDouble();
+
+    // Kumpulkan parameter yang tersedia
+    List<Widget> gridItems = [];
+    
+    if (phAir != null) {
+      gridItems.add(_buildGridItem(context, 'pH AIR', phAir, '', isOnline, 'assets/images/awqr/ph_air.svg', 'ph_air'));
+    }
+    if (suhuAir != null) {
+      gridItems.add(_buildGridItem(context, 'SUHU AIR', suhuAir, '°C', isOnline, 'assets/images/awqr/suhu_air.svg', 'suhu_air'));
+    }
+    if (orp != null) {
+      gridItems.add(_buildGridItem(context, 'ORP', orp, 'mV', isOnline, 'assets/images/awqr/orp.svg', 'orp'));
+    }
+    if (conductivity != null) {
+      gridItems.add(_buildGridItem(context, 'CONDUCTIVITY', conductivity, 'µS/cm', isOnline, 'assets/images/awqr/conductivity.svg', 'conductivity'));
+    }
+    if (salinity != null) {
+      gridItems.add(_buildGridItem(context, 'SALINITY', salinity, 'PSU', isOnline, 'assets/images/awqr/salinity.svg', 'salinity'));
+    }
+    if (tds != null) {
+      gridItems.add(_buildGridItem(context, 'TOTAL DISSOLVED\nSOLIDS', tds, 'mg/L', isOnline, 'assets/images/awqr/total_dissolved_solids.svg', 'tds'));
+    }
+    if (turbidity != null) {
+      gridItems.add(_buildGridItem(context, 'TURBIDITY', turbidity, 'NTU', isOnline, 'assets/images/awqr/turbidity.svg', 'turbidity'));
+    }
+    if (tinggiSensor != null) {
+      gridItems.add(_buildGridItem(context, 'TINGGI SENSOR', tinggiSensor, 'm', isOnline, 'assets/images/awqr/tinggi_sensor.svg', 'elevasi_sensor'));
+    }
+
+    // Bangun baris untuk grid secara dinamis (2 kolom per baris)
+    List<Widget> gridRows = [];
+    for (int i = 0; i < gridItems.length; i += 2) {
+      gridRows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              Expanded(child: gridItems[i]),
+              const SizedBox(width: 8),
+              if (i + 1 < gridItems.length)
+                Expanded(child: gridItems[i + 1])
+              else
+                Expanded(child: const SizedBox()), // Spacer agar lebar kolom pertama tetap konsisten
+            ],
+          ),
+        ),
+      );
+    }
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -43,41 +91,11 @@ class AwqrVisualizationWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Top Card (TINGGI MUKA AIR)
-          _buildTopCard(context, tma, isOnline, 'tma'),
-          const SizedBox(height: 12),
-          // Grid of 8 items
-          Row(
-            children: [
-              Expanded(child: _buildGridItem(context, 'pH AIR', phAir, '', isOnline, 'assets/images/awqr/ph_air.svg', 'ph_air')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildGridItem(context, 'SUHU AIR', suhuAir, '°C', isOnline, 'assets/images/awqr/suhu_air.svg', 'suhu_air')),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildGridItem(context, 'ORP', orp, 'mV', isOnline, 'assets/images/awqr/orp.svg', 'orp')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildGridItem(context, 'CONDUCTIVITY', conductivity, 'µS/cm', isOnline, 'assets/images/awqr/conductivity.svg', 'conductivity')),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildGridItem(context, 'SALINITY', salinity, 'PSU', isOnline, 'assets/images/awqr/salinity.svg', 'salinity')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildGridItem(context, 'TOTAL DISSOLVED\nSOLIDS', tds, 'mg/L', isOnline, 'assets/images/awqr/total_dissolved_solids.svg', 'tds')),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              Expanded(child: _buildGridItem(context, 'TURBIDITY', turbidity, 'NTU', isOnline, 'assets/images/awqr/turbidity.svg', 'turbidity')),
-              const SizedBox(width: 8),
-              Expanded(child: _buildGridItem(context, 'TINGGI SENSOR', tinggiSensor, 'm', isOnline, 'assets/images/awqr/tinggi_sensor.svg', 'elevasi_sensor')),
-            ],
-          ),
+          if (tma != null) ...[
+            _buildTopCard(context, tma, isOnline, 'tma'),
+            if (gridRows.isNotEmpty) const SizedBox(height: 12),
+          ],
+          ...gridRows,
         ],
       ),
     );

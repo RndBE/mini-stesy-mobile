@@ -32,27 +32,47 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildWindCard(),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(child: _buildLightCard()),
-            const SizedBox(width: 12),
-            Expanded(child: _buildRainCard()),
-          ],
-        ),
-        const SizedBox(height: 12),
-        _buildAirCard(),
-      ],
-    );
+    final windCard = _buildWindCard();
+    final lightCard = _buildLightCard();
+    final rainCard = _buildRainCard();
+    final airCard = _buildAirCard();
+
+    List<Widget> children = [];
+    
+    if (windCard != null) {
+      children.add(windCard);
+      children.add(const SizedBox(height: 12));
+    }
+
+    List<Widget> rowItems = [];
+    if (lightCard != null) rowItems.add(Expanded(child: lightCard));
+    if (rainCard != null) rowItems.add(Expanded(child: rainCard));
+
+    if (rowItems.isNotEmpty) {
+      if (rowItems.length == 1) {
+        children.add(Row(children: [rowItems[0], const SizedBox(width: 12), const Expanded(child: SizedBox())]));
+      } else {
+        children.add(Row(children: [rowItems[0], const SizedBox(width: 12), rowItems[1]]));
+      }
+      children.add(const SizedBox(height: 12));
+    }
+
+    if (airCard != null) {
+      children.add(airCard);
+    }
+
+    // Remove trailing SizedBox if it exists
+    if (children.isNotEmpty && children.last is SizedBox) {
+      children.removeLast();
+    }
+
+    return Column(children: children);
   }
 
-  double _parseDouble(dynamic value) {
-    if (value == null) return 0.0;
+  double? _parseDoubleOrNull(dynamic value) {
+    if (value == null) return null;
     if (value is num) return value.toDouble();
-    return double.tryParse(value.toString()) ?? 0.0;
+    return double.tryParse(value.toString());
   }
 
   // Helper function to build small parameter cards
@@ -134,9 +154,11 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
 );
 }
 
-  Widget _buildWindCard() {
-    final speed = _parseDouble(widget.sensorData['kecepatan_angin']);
-    final direction = _parseDouble(widget.sensorData['arah_angin']);
+  Widget? _buildWindCard() {
+    final speed = _parseDoubleOrNull(widget.sensorData['kecepatan_angin']);
+    final direction = _parseDoubleOrNull(widget.sensorData['arah_angin']);
+
+    if (speed == null && direction == null) return null;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -160,28 +182,30 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
                   fit: BoxFit.contain,
                 ),
                 // Blue Arc
-                Positioned(
-                  width: 120,
-                  height: 120,
-                  child: CustomPaint(
-                    painter: _CompassArcPainter(direction, const Color(0xFF0000FF)),
+                if (direction != null)
+                  Positioned(
+                    width: 120,
+                    height: 120,
+                    child: CustomPaint(
+                      painter: _CompassArcPainter(direction, const Color(0xFF0000FF)),
+                    ),
                   ),
-                ),
                 // Needle
-                Positioned(
-                  width: 120,
-                  height: 120,
-                  child: Transform.rotate(
-                    angle: direction * (math.pi / 180),
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 20),
-                        child: const Icon(Icons.navigation, color: Color(0xFF0000FF), size: 28),
+                if (direction != null)
+                  Positioned(
+                    width: 120,
+                    height: 120,
+                    child: Transform.rotate(
+                      angle: direction * (math.pi / 180),
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 20),
+                          child: const Icon(Icons.navigation, color: Color(0xFF0000FF), size: 28),
+                        ),
                       ),
                     ),
                   ),
-                ),
               ],
             ),
           ),
@@ -191,9 +215,9 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
             flex: 3,
             child: Column(
               children: [
-                _buildParamItem('KECEPATAN ANGIN', speed.toStringAsFixed(3), 'm/s', 'assets/images/awr/kecepatan_angin.svg', 'kecepatan_angin'),
-                const SizedBox(height: 8),
-                _buildParamItem('ARAH ANGIN', direction.toStringAsFixed(2), '°', 'assets/images/awr/arah_angin.svg', 'arah_angin'),
+                if (speed != null) _buildParamItem('KECEPATAN ANGIN', speed.toStringAsFixed(3), 'm/s', 'assets/images/awr/kecepatan_angin.svg', 'kecepatan_angin'),
+                if (speed != null && direction != null) const SizedBox(height: 8),
+                if (direction != null) _buildParamItem('ARAH ANGIN', direction.toStringAsFixed(2), '°', 'assets/images/awr/arah_angin.svg', 'arah_angin'),
               ],
             ),
           ),
@@ -202,9 +226,11 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
     );
   }
 
-  Widget _buildLightCard() {
-    final light = _parseDouble(widget.sensorData['kecerahan']);
-    final lightDir = _parseDouble(widget.sensorData['arah_cahaya']);
+  Widget? _buildLightCard() {
+    final light = _parseDoubleOrNull(widget.sensorData['kecerahan']);
+    final lightDir = _parseDoubleOrNull(widget.sensorData['arah_cahaya']);
+    
+    if (light == null && lightDir == null) return null;
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -221,17 +247,23 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
           ),
           const SizedBox(height: 12),
-          _buildParamItem('KECERAHAN', light.toStringAsFixed(3), 'K Lux', 'assets/images/awr/kecerahan.svg', 'kecerahan'),
-          const SizedBox(height: 8),
-          _buildParamItem('ARAH', lightDir.toStringAsFixed(1), '°', 'assets/images/awr/arah.svg', 'arah_cahaya'),
+          if (light != null) _buildParamItem('KECERAHAN', light.toStringAsFixed(3), 'K Lux', 'assets/images/awr/kecerahan.svg', 'kecerahan'),
+          if (light != null && lightDir != null) const SizedBox(height: 8),
+          if (lightDir != null) _buildParamItem('ARAH', lightDir.toStringAsFixed(1), '°', 'assets/images/awr/arah.svg', 'arah_cahaya'),
         ],
       ),
     );
   }
 
-  Widget _buildRainCard() {
-    final rainHour = _parseDouble(widget.sensorData['curah_hujan_per_jam']);
-    final rainDay = _parseDouble(widget.sensorData['curah_hujan_harian']);
+  Widget? _buildRainCard() {
+    final rainHour = _parseDoubleOrNull(widget.sensorData['curah_hujan_per_jam']);
+    final rainDay = _parseDoubleOrNull(widget.sensorData['curah_hujan_harian']);
+    
+    if (rainHour == null && rainDay == null) return null;
+
+    List<Widget> slides = [];
+    if (rainHour != null) slides.add(_buildRainSlide('Akumulasi 1 Jam', rainHour, true));
+    if (rainDay != null) slides.add(_buildRainSlide('Akumulasi Harian', rainDay, false));
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -245,32 +277,30 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
         children: [
           SizedBox(
             height: 150, // Fixed height for carousel
-            child: PageView.builder(
-              controller: _rainPageController,
-              onPageChanged: (idx) {
-                setState(() {
-                  _currentRainPage = idx % 2;
-                });
-              },
-              itemBuilder: (context, idx) {
-                final realIndex = idx % 2;
-                if (realIndex == 0) {
-                  return _buildRainSlide('Akumulasi 1 Jam', rainHour, true);
-                } else {
-                  return _buildRainSlide('Akumulasi Harian', rainDay, false);
-                }
-              },
+            child: slides.length > 1
+              ? PageView.builder(
+                  controller: _rainPageController,
+                  onPageChanged: (idx) {
+                    setState(() {
+                      _currentRainPage = idx % slides.length;
+                    });
+                  },
+                  itemBuilder: (context, idx) {
+                    return slides[idx % slides.length];
+                  },
+                )
+              : slides.first,
+          ),
+          if (slides.length > 1) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: List.generate(slides.length, (index) => Padding(
+                padding: EdgeInsets.only(right: index == slides.length - 1 ? 0 : 4),
+                child: _buildDot(index),
+              )),
             ),
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildDot(0),
-              const SizedBox(width: 4),
-              _buildDot(1),
-            ],
-          ),
+          ],
         ],
       ),
     );
@@ -367,10 +397,17 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
     );
   }
 
-  Widget _buildAirCard() {
-    final temp = _parseDouble(widget.sensorData['temperature'] ?? widget.sensorData['suhu']);
-    final press = _parseDouble(widget.sensorData['tekanan_udara']);
-    final humid = _parseDouble(widget.sensorData['humidity'] ?? widget.sensorData['kelembaban']);
+  Widget? _buildAirCard() {
+    final temp = _parseDoubleOrNull(widget.sensorData['temperature'] ?? widget.sensorData['suhu']);
+    final press = _parseDoubleOrNull(widget.sensorData['tekanan_udara']);
+    final humid = _parseDoubleOrNull(widget.sensorData['humidity'] ?? widget.sensorData['kelembaban']);
+
+    if (temp == null && press == null && humid == null) return null;
+
+    List<Widget> items = [];
+    if (temp != null) items.add(_buildAirItem('TEMPERATURE', temp.toStringAsFixed(2), '°C', 'temperature', assetPath: 'assets/images/beranda/temper_online.svg'));
+    if (press != null) items.add(_buildAirItem('TEKANAN UDARA', press.toStringAsFixed(1), 'hPa', 'tekanan_udara', assetPath: 'assets/images/awr/tekanan_udara.svg'));
+    if (humid != null) items.add(_buildAirItem('KELEMBABAN', humid.toStringAsFixed(2), '%', 'humidity', assetPath: 'assets/images/beranda/humidity_online.svg'));
 
     return Container(
       width: double.infinity,
@@ -398,11 +435,8 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildAirItem('TEMPERATURE', temp.toStringAsFixed(2), '°C', 'temperature', assetPath: 'assets/images/beranda/temper_online.svg'),
-                _buildAirItem('TEKANAN UDARA', press.toStringAsFixed(1), 'hPa', 'tekanan_udara', assetPath: 'assets/images/awr/tekanan_udara.svg'),
-                _buildAirItem('KELEMBABAN', humid.toStringAsFixed(2), '%', 'humidity', assetPath: 'assets/images/beranda/humidity_online.svg'),
-              ],
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: items.map((e) => Expanded(child: e)).toList(),
             ),
           ),
         ],

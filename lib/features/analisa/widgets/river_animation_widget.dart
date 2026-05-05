@@ -43,6 +43,8 @@ class _RiverAnimationWidgetState extends State<RiverAnimationWidget>
 
   @override
   Widget build(BuildContext context) {
+    if (widget.tma == null) return const SizedBox.shrink();
+
     return Container(
       height: 250,
       width: double.infinity,

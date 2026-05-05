@@ -182,13 +182,46 @@ class PosVisualizationWidget extends StatelessWidget {
   Widget _buildRiverCard(BuildContext context, String idLogger, Map<String, dynamic> sensorData, Map<String, dynamic>? nonjiatData, bool isOnline, String tiangAsset, {bool isAFMR = false}) {
     final tma = (sensorData['tma'] as num?)?.toDouble();
     final elevMin = (nonjiatData?['elevasi_min'] as num?)?.toDouble();
-    final debit = (sensorData['debit'] as num?)?.toDouble() ?? 0.0;
     final elevMax = (nonjiatData?['elevasi_max'] as num?)?.toDouble();
     
-    final luasPenampang = (sensorData['luas_penampang'] as num?)?.toDouble() ?? (sensorData['luas_penampang_basah'] as num?)?.toDouble() ?? 0.0;
-    final kecepatanAliran = (sensorData['kecepatan_aliran'] as num?)?.toDouble() ?? (sensorData['flow_velocity'] as num?)?.toDouble() ?? 0.0;
-    final elevSensor = (sensorData['elevasi_sensor'] as num?)?.toDouble() ?? 0.0;
-    final jarakSensor = (sensorData['jarak_sensor'] as num?)?.toDouble() ?? 0.0;
+    final debit = (sensorData['debit'] as num?)?.toDouble();
+    final luasPenampang = (sensorData['luas_penampang'] as num?)?.toDouble() ?? (sensorData['luas_penampang_basah'] as num?)?.toDouble();
+    final kecepatanAliran = (sensorData['kecepatan_aliran'] as num?)?.toDouble() ?? (sensorData['flow_velocity'] as num?)?.toDouble();
+    final elevSensor = (sensorData['elevasi_sensor'] as num?)?.toDouble();
+    final jarakSensor = (sensorData['jarak_sensor'] as num?)?.toDouble();
+    
+    List<Widget> gridItems = [];
+    
+    if (isAFMR) {
+      if (luasPenampang != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'luas_penampang', 'LUAS PENAMPANG BASAH', luasPenampang, 'm²', isOnline, assetPath: 'assets/images/afmr/luas_penampang_air.svg'));
+      if (debit != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg'));
+      if (kecepatanAliran != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'flow_velocity', 'FLOW VELOCITY', kecepatanAliran, 'm/s', isOnline, assetPath: 'assets/images/afmr/flow_velocity.svg'));
+      if (tma != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'tma', 'ELEVASI MUKA AIR', tma, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg'));
+      if (elevSensor != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'elevasi_sensor', 'ELEVASI SENSOR', elevSensor, 'm', isOnline, assetPath: 'assets/images/afmr/elevasi_sensor.svg'));
+      if (jarakSensor != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'jarak_sensor', 'JARAK SENSOR', jarakSensor, 'm', isOnline, assetPath: 'assets/images/afmr/jarak_sensor.svg'));
+    } else {
+      if (tma != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'tma', 'TINGGI MUKA AIR', tma, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg'));
+      if (debit != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg'));
+    }
+
+    List<Widget> gridRows = [];
+    for (int i = 0; i < gridItems.length; i += 2) {
+      gridRows.add(
+        Padding(
+          padding: const EdgeInsets.only(bottom: 8.0),
+          child: Row(
+            children: [
+              Expanded(child: gridItems[i]),
+              const SizedBox(width: 8),
+              if (i + 1 < gridItems.length)
+                Expanded(child: gridItems[i + 1])
+              else
+                Expanded(child: const SizedBox()),
+            ],
+          ),
+        ),
+      );
+    }
     
     return Container(
       padding: const EdgeInsets.all(12),
@@ -214,40 +247,8 @@ class PosVisualizationWidget extends StatelessWidget {
             isOnline: isOnline,
             tiangAsset: tiangAsset,
           ),
-          const SizedBox(height: 12),
-          if (isAFMR) ...[
-            Row(
-              children: [
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'luas_penampang', 'LUAS PENAMPANG BASAH', luasPenampang, 'm²', isOnline, assetPath: 'assets/images/afmr/luas_penampang_air.svg')),
-                const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'flow_velocity', 'FLOW VELOCITY', kecepatanAliran, 'm/s', isOnline, assetPath: 'assets/images/afmr/flow_velocity.svg')),
-                const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'tma', 'ELEVASI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'elevasi_sensor', 'ELEVASI SENSOR', elevSensor, 'm', isOnline, assetPath: 'assets/images/afmr/elevasi_sensor.svg')),
-                const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'jarak_sensor', 'JARAK SENSOR', jarakSensor, 'm', isOnline, assetPath: 'assets/images/afmr/jarak_sensor.svg')),
-              ],
-            ),
-          ] else ...[
-            Row(
-              children: [
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'tma', 'TINGGI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
-                const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
-              ],
-            ),
-          ],
+          if (tma != null && gridRows.isNotEmpty) const SizedBox(height: 12),
+          ...gridRows,
         ],
       ),
     );

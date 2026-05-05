@@ -45,40 +45,24 @@ class _BerandaScreenState extends State<BerandaScreen> {
   final BerandaRepository _berandaRepo = BerandaRepository();
 
   Future<void> _fetchDataInstansi() async {
+    // 1. Coba load dari cache dulu biar UI langsung muncul tanpa nunggu internet
+    try {
+      final cachedData = await _berandaRepo.getCachedBerandaInfo();
+      if (cachedData != null && mounted) {
+        _updateInstansiState(cachedData);
+      }
+    } catch (_) {}
+
+    // 2. Fetch data terbaru dari server secara background
     try {
       final data = await _berandaRepo.getBerandaInfo();
       
       if (mounted) {
-        setState(() {
-          _isLoadingInstansi = false;
-          // Asumsi respons JSON memiliki key 'instansi'
-          if (data['instansi'] != null) {
-            final instansi = data['instansi'];
-            _namaInstansi = instansi['nama'] ?? "Nama Instansi Belum Diatur";
-            _alamatInstansi = instansi['alamat'] ?? "Alamat belum diatur";
-            
-            // Prioritaskan logo_mobile, fallback ke logo jika tidak ada
-            final rawLogo = (instansi['logo_mobile'] != null && instansi['logo_mobile'].toString().isNotEmpty)
-                ? instansi['logo_mobile']
-                : instansi['logo'];
-
-            if (rawLogo != null && rawLogo.toString().isNotEmpty) {
-              _logoInstansiUrl = rawLogo.toString().startsWith('http')
-                  ? rawLogo.toString()
-                  : '$kBaseUrl/storage/$rawLogo';
-            }
-          } else {
-            _namaInstansi = "Data Instansi Tidak Ditemukan";
-            _alamatInstansi = "Silakan hubungi administrator";
-          }
-          
-          if (data['kategori_list'] != null) {
-            _kategoriList = data['kategori_list'] as List<dynamic>;
-          }
-        });
+        _updateInstansiState(data);
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && _kategoriList.isEmpty) {
+        // Hanya tampilkan error kalau cache sebelumnya kosong
         setState(() {
           _isLoadingInstansi = false;
           _namaInstansi = "Gagal memuat data";
@@ -86,6 +70,36 @@ class _BerandaScreenState extends State<BerandaScreen> {
         });
       }
     }
+  }
+
+  void _updateInstansiState(Map<String, dynamic> data) {
+    setState(() {
+      _isLoadingInstansi = false;
+      // Asumsi respons JSON memiliki key 'instansi'
+      if (data['instansi'] != null) {
+        final instansi = data['instansi'];
+        _namaInstansi = instansi['nama'] ?? "Nama Instansi Belum Diatur";
+        _alamatInstansi = instansi['alamat'] ?? "Alamat belum diatur";
+        
+        // Prioritaskan logo_mobile, fallback ke logo jika tidak ada
+        final rawLogo = (instansi['logo_mobile'] != null && instansi['logo_mobile'].toString().isNotEmpty)
+            ? instansi['logo_mobile']
+            : instansi['logo'];
+
+        if (rawLogo != null && rawLogo.toString().isNotEmpty) {
+          _logoInstansiUrl = rawLogo.toString().startsWith('http')
+              ? rawLogo.toString()
+              : '$kBaseUrl/storage/$rawLogo';
+        }
+      } else {
+        _namaInstansi = "Data Instansi Tidak Ditemukan";
+        _alamatInstansi = "Silakan hubungi administrator";
+      }
+      
+      if (data['kategori_list'] != null) {
+        _kategoriList = data['kategori_list'] as List<dynamic>;
+      }
+    });
   }
 
   void _onLogout() async {
