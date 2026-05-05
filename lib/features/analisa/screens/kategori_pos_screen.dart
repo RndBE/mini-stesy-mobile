@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import '../../peta/data/peta_repository.dart';
 import '../widgets/pos_visualization_widget.dart';
+import 'dokumentasi_pos_screen.dart';
 
 class KategoriPosScreen extends StatefulWidget {
   final String kategori;
@@ -88,6 +89,19 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
               if (value == 'Informasi') {
                 if (_selectedPoint != null) {
                   _showInformasiDialog(_selectedPoint!);
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Pilih pos terlebih dahulu')),
+                  );
+                }
+              } else if (value == 'Dokumentasi Pos') {
+                if (_selectedPoint != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DokumentasiPosScreen(point: _selectedPoint!),
+                    ),
+                  );
                 } else {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(content: Text('Pilih pos terlebih dahulu')),

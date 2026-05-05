@@ -107,23 +107,26 @@ class _BerandaScreenState extends State<BerandaScreen> {
       backgroundColor: colorBackground,
       body: Stack(
         children: [
-          // 1. Background Biru Atas dengan Ombak Melengkung (ClipPath)
-          ClipPath(
-            clipper: _HeaderClipper(),
-            child: Container(
-              height: 250, // Tinggi diperbesar agar lengkungannya memotong Card dengan pas
-              width: double.infinity,
-              color: colorPrimaryDark,
+          // 1. Background Biru Atas Lurus (Tanpa ClipPath Melengkung)
+          Container(
+            height: 210, // Tinggi disesuaikan
+            width: double.infinity,
+            color: colorPrimaryDark,
+            child: ClipRect( // Agar gambar ombak yang digeser tidak bocor ke bawah
               child: Stack(
                 children: [
-                  // Wavy Background (Ombak)
-                  Positioned.fill(
+                  // Wavy Background (Ombak Putih Transparan)
+                  Positioned(
+                    top: 30, // Menggeser posisi gelombang putih ke bawah
+                    left: 0,
+                    right: 0,
+                    bottom: -40,
                     child: Opacity(
-                      opacity: 0.35, // Ditebalkan sedikit agar motif gelombangnya terlihat jelas
+                      opacity: 0.35, 
                       child: Image.asset(
                         'assets/images/bg-login.png',
-                        fit: BoxFit.cover, // Memenuhi seluruh area yang di-clip
-                        alignment: const Alignment(0, 0.5), // Menggeser gambar ke atas agar ombak putihnya tidak terpotong oleh ClipPath
+                        fit: BoxFit.cover, 
+                        alignment: Alignment.topCenter,
                       ),
                     ),
                   ),
@@ -486,32 +489,4 @@ class _BerandaScreenState extends State<BerandaScreen> {
       ),
     );
   }
-}
-
-class _HeaderClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.lineTo(0, size.height - 30); // Mulai dari sisi kiri, sedikit di atas batas bawah
-    
-    // Gelombang pertama (kiri ke tengah)
-    path.quadraticBezierTo(
-      size.width * 0.25, size.height, // Titik kontrol melengkung ke bawah
-      size.width * 0.5, size.height - 25, // Titik akhir gelombang pertama
-    );
-    
-    // Gelombang kedua (tengah ke kanan)
-    path.quadraticBezierTo(
-      size.width * 0.75, size.height - 50, // Titik kontrol melengkung ke atas
-      size.width, size.height - 20, // Titik akhir di sisi kanan
-    );
-    
-    path.lineTo(size.width, 0); // Tarik garis ke sudut kanan atas
-    path.close(); // Tutup path kembali ke kiri atas
-    
-    return path;
-  }
-
-  @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
