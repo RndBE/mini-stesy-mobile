@@ -69,6 +69,8 @@ flutter:
     - assets/images/awr/
     - assets/images/awlr/
     - assets/images/afmr/
+    - assets/images/arr/
+    - assets/images/awqr/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

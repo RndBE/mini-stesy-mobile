@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
+import 'package:flutter_svg/flutter_svg.dart';
 import '../data/peta_repository.dart';
 import '../../analisa/screens/detail_analisa_screen.dart';
 
@@ -174,6 +175,61 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
     return Icons.location_on;
   }
 
+  String _getKategoriIconAsset(String kategori) {
+    final kat = kategori.toLowerCase();
+    if (kat.contains('awlr')) return 'assets/images/awlr/ikon_awlr.svg';
+    if (kat.contains('arr')) return 'assets/images/arr/ikon_arr.svg';
+    if (kat.contains('awr')) return 'assets/images/awr/ikon_awr.svg';
+    if (kat.contains('afmr')) return 'assets/images/afmr/ikon_afmr.svg';
+    if (kat.contains('awqr')) return 'assets/images/awqr/ikon_awqr.svg';
+    // Fallback default
+    return 'assets/images/awlr/ikon_awlr.svg';
+  }
+
+  String _getMarkerAssetPath(Map<String, dynamic> point) {
+    final status = point['status']?.toString().toLowerCase() ?? 'offline';
+    final kondisi = point['kondisi']?.toString().toLowerCase() ?? '';
+    final kategori = (point['kategori']?.toString() ?? '').toLowerCase();
+    
+    // Tentukan folder berdasarkan kategori
+    String folder = 'awlr';
+    if (kategori.contains('arr')) {
+      folder = 'arr';
+    } else if (kategori.contains('awr')) {
+      folder = 'awr';
+    } else if (kategori.contains('afmr')) {
+      folder = 'afmr';
+    } else if (kategori.contains('awqr')) {
+      folder = 'awqr';
+    }
+
+    // Perbaikan / Maintenance check
+    if (status == 'perbaikan' || kondisi == 'perbaikan') {
+       return 'assets/images/$folder/perbaikan.svg';
+    }
+
+    // Offline check
+    if (status == 'offline') {
+       if (folder == 'arr') {
+         return 'assets/images/arr/koneksi_terputus.svg';
+       }
+       return 'assets/images/$folder/offline.svg';
+    }
+
+    // Online check
+    if (folder == 'arr') {
+      final state = point['arr_state']?.toString().toLowerCase() ?? '';
+      if (state.contains('sangat lebat') || state.contains('sangat_lebat')) return 'assets/images/arr/hujan_sangat_lebat.svg';
+      if (state.contains('lebat')) return 'assets/images/arr/hujan_lebat.svg';
+      if (state.contains('sedang')) return 'assets/images/arr/hujan_sedang.svg';
+      if (state.contains('sangat ringan') || state.contains('sangat_ringan')) return 'assets/images/arr/hujan_sangat_ringan.svg';
+      if (state.contains('ringan')) return 'assets/images/arr/hujan_ringan.svg';
+      return 'assets/images/arr/tidak_hujan.svg';
+    }
+    
+    return 'assets/images/$folder/online.svg';
+  }
+
   @override
   Widget build(BuildContext context) {
     // URL Tile Provider (menggunakan {s} untuk parallel loading)
@@ -228,8 +284,8 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
 
                   return Marker(
                     point: LatLng(lat, lng),
-                    width: 50,
-                    height: 56, // Tinggi asli agar ujung pin pas di koordinat
+                    width: 40,
+                    height: 46, // Diperkecil dari sebelumnya 50x56
                     alignment: Alignment.topCenter,
                     child: RepaintBoundary(
                       child: GestureDetector(
@@ -244,37 +300,12 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
                             clipBehavior: Clip.none,
                             alignment: Alignment.bottomCenter,
                             children: [
-                              // Pin / Marker Asli
-                              Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  // Lingkaran utama
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: color,
-                                      shape: BoxShape.circle,
-                                      border: Border.all(color: Colors.white, width: 3),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.3),
-                                          blurRadius: 6,
-                                          offset: const Offset(0, 3),
-                                        ),
-                                      ],
-                                    ),
-                                    child: Icon(icon, color: Colors.white, size: 24),
-                                  ),
-                                  // Ekor pin (segitiga ke bawah)
-                                  Transform.translate(
-                                    offset: const Offset(0, -6),
-                                    child: CustomPaint(
-                                      size: const Size(14, 10),
-                                      painter: _PinTailPainter(color: Colors.white),
-                                    ),
-                                  ),
-                                ],
+                              // Pin / Marker Asli dari Asset SVG
+                              SvgPicture.asset(
+                                _getMarkerAssetPath(p),
+                                width: 36,
+                                height: 44,
+                                fit: BoxFit.contain,
                               ),
                               // Label Popup (hanya jika terpilih) melayang di atas marker
                               if (_selectedPointPopup == p)
@@ -487,10 +518,11 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
                                   color: Colors.grey.shade100,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Icon(
-                                  kategori.toLowerCase().contains('awlr') ? Icons.water : Icons.cloud,
-                                  color: const Color(0xFF2E3192),
-                                  size: 16,
+                                child: SvgPicture.asset(
+                                  _getKategoriIconAsset(kategori),
+                                  width: 16,
+                                  height: 16,
+                                  colorFilter: const ColorFilter.mode(Color(0xFF2E3192), BlendMode.srcIn),
                                 ),
                               ),
                               const SizedBox(width: 8),
@@ -830,33 +862,5 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
         ),
       ),
     );
-  }
-}
-
-class _PinTailPainter extends CustomPainter {
-  final Color color;
-
-  _PinTailPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.fill;
-
-    final path = Path();
-    path.moveTo(0, 0); // Kiri atas
-    path.lineTo(size.width, 0); // Kanan atas
-    path.lineTo(size.width / 2, size.height); // Ujung bawah tengah
-    path.close();
-
-    // Tambahkan bayangan kecil agar menyatu dengan lingkaran
-    canvas.drawShadow(path, Colors.black, 4, false);
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant _PinTailPainter oldDelegate) {
-    return oldDelegate.color != color;
   }
 }
