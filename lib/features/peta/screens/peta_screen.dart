@@ -251,6 +251,9 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
             options: MapOptions(
               initialCenter: _defaultCenter,
               initialZoom: _currentZoom,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
               onTap: (tapPosition, point) {
                 if (_selectedPointPopup != null) {
                   setState(() => _selectedPointPopup = null);

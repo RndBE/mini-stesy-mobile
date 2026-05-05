@@ -9,6 +9,7 @@ class WellAnimationWidget extends StatefulWidget {
   final double? mukaAirTanah;
   final bool hasPump;
   final bool isOnline;
+  final void Function(String)? onLabelTap;
 
   const WellAnimationWidget({
     super.key,
@@ -18,6 +19,7 @@ class WellAnimationWidget extends StatefulWidget {
     this.mukaAirTanah,
     this.hasPump = false,
     this.isOnline = false,
+    this.onLabelTap,
   });
 
   @override
@@ -176,7 +178,7 @@ class _WellAnimationWidgetState extends State<WellAnimationWidget>
               
               // Labels
               _buildLabel('DATA AIR TANAH', '${dataAirTanah.toStringAsFixed(2)} m', const Color(0xFFA67C52), true, -60, const Color(0xFFE8DCD1)),
-              _buildLabel('MUKA AIR TANAH', '${(widget.mukaAirTanah ?? 0).toStringAsFixed(2)} m', const Color(0xFF00B2FF), false, -60, const Color(0xFFE0F4FF)),
+              _buildLabel('MUKA AIR TANAH', '${(widget.mukaAirTanah ?? 0).toStringAsFixed(2)} m', const Color(0xFF00B2FF), false, -60, const Color(0xFFE0F4FF), paramName: 'muka_air_tanah'),
               _buildLabel('ELEVASI SENSOR', '${(widget.kedalamanSensor ?? 0).toStringAsFixed(2)} m', const Color(0xFFFF4D4D), true, 20, const Color(0xFFFFE0E0)),
               if (widget.hasPump)
                 _buildLabel('ELEVASI POMPA', '${(widget.kedalamanPompa ?? 0).toStringAsFixed(2)} m', const Color(0xFFFFD12A), false, 20, const Color(0xFFFFF7D6)),
@@ -215,33 +217,45 @@ class _WellAnimationWidgetState extends State<WellAnimationWidget>
     );
   }
 
-  Widget _buildLabel(String title, String value, Color borderColor, bool isLeft, double yOffset, Color bgColor) {
+  Widget _buildLabel(String title, String value, Color borderColor, bool isLeft, double yOffset, Color bgColor, {String? paramName}) {
     return Positioned(
       top: 175.0 + yOffset, 
       left: isLeft ? 10 : null,
       right: isLeft ? null : 10,
       width: 120,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-        decoration: BoxDecoration(
-          color: bgColor,
-          border: Border.all(color: borderColor, width: 1.0),
+      child: Material(
+        color: bgColor,
+        shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(6),
+          side: BorderSide(color: borderColor, width: 1.0),
         ),
-        child: Column(
-          crossAxisAlignment: isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
-          children: [
-            Text(title, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Color(0xFF4A4A4A), letterSpacing: 0.5)),
-            const SizedBox(height: 2),
-            RichText(
-              text: TextSpan(
-                children: [
-                  TextSpan(text: value.split(' ')[0], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
-                  const TextSpan(text: ' m', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black)),
-                ],
-              ),
+        clipBehavior: Clip.hardEdge,
+        child: InkWell(
+          onTap: paramName != null 
+              ? () {
+                  if (widget.onLabelTap != null) {
+                    widget.onLabelTap!(paramName);
+                  }
+                }
+              : null,
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Column(
+              crossAxisAlignment: isLeft ? CrossAxisAlignment.start : CrossAxisAlignment.end,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w600, color: Color(0xFF4A4A4A), letterSpacing: 0.5)),
+                const SizedBox(height: 2),
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(text: value.split(' ')[0], style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.black)),
+                      const TextSpan(text: ' m', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

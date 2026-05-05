@@ -33,7 +33,7 @@ class PosVisualizationWidget extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (isAWLR && subKategori == 'jiat')
-          _buildDataSumurCard(sensorData, isOnline),
+          _buildDataSumurCard(context, point['id_logger'].toString(), sensorData, isOnline),
 
         // ── Visualisasi Animasi
         _buildVisualization(
@@ -81,8 +81,8 @@ class PosVisualizationWidget extends StatelessWidget {
             (sensorData['tma'] as num?)?.toDouble();
 
         return Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: Colors.grey.shade200),
@@ -104,6 +104,18 @@ class PosVisualizationWidget extends StatelessWidget {
                 mukaAirTanah: mukaAir,
                 hasPump: hasPump,
                 isOnline: isOnline,
+                onLabelTap: (paramName) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => DetailAnalisaScreen(
+                        idLogger: idLogger,
+                        parameterName: paramName,
+                        isOnline: isOnline,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -566,12 +578,25 @@ class PosVisualizationWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildDataSumurCard(Map<String, dynamic> sensorData, bool isOnline) {
+  Widget _buildDataSumurCard(BuildContext context, String idLogger, Map<String, dynamic> sensorData, bool isOnline) {
     final tma = sensorData['tma'] ?? sensorData['muka_air_tanah'];
     final valueText = tma != null ? '${(tma as num).toStringAsFixed(3)} m' : '-';
 
-    return Container(
-      width: double.infinity,
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailAnalisaScreen(
+              idLogger: idLogger,
+              parameterName: 'muka_air_tanah',
+              isOnline: isOnline,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        width: double.infinity,
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -638,6 +663,7 @@ class PosVisualizationWidget extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

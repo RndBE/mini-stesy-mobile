@@ -7,6 +7,7 @@ import '../data/beranda_repository.dart';
 import '../../analisa/screens/kategori_pos_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shimmer/shimmer.dart';
 
 class BerandaScreen extends StatefulWidget {
   const BerandaScreen({super.key});
@@ -118,12 +119,16 @@ class _BerandaScreenState extends State<BerandaScreen> {
     final dateStr = DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(DateTime.now());
 
     return Scaffold(
-      backgroundColor: colorBackground,
-      body: Stack(
-        children: [
+      backgroundColor: colorPrimaryDark, // Status bar akan berwarna biru
+      body: SafeArea(
+        bottom: false,
+        child: Container(
+          color: colorBackground, // Background untuk sisa halaman
+          child: Stack(
+            children: [
           // 1. Background Biru Atas Lurus (Tanpa ClipPath Melengkung)
           Container(
-            height: 210, // Tinggi disesuaikan
+            height: 185, // Tinggi disesuaikan agar pas di tengah card instansi
             width: double.infinity,
             color: colorPrimaryDark,
             child: ClipRect( // Agar gambar ombak yang digeser tidak bocor ke bawah
@@ -150,9 +155,8 @@ class _BerandaScreenState extends State<BerandaScreen> {
           ),
 
           // 3. Main Content
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // --- HEADER ---
                 Padding(
@@ -285,7 +289,16 @@ class _BerandaScreenState extends State<BerandaScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: _isLoadingInstansi 
-                              ? const Center(child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)))
+                              ? Shimmer.fromColors(
+                                  baseColor: Colors.grey.shade300,
+                                  highlightColor: Colors.grey.shade100,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                )
                               : _logoInstansiUrl != null
                                   ? Image.network(
                                       _logoInstansiUrl!, 
@@ -302,28 +315,43 @@ class _BerandaScreenState extends State<BerandaScreen> {
                         
                         // Text Detail Instansi
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _namaInstansi,
-                                style: const TextStyle(
-                                  color: Colors.black87,
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
+                          child: _isLoadingInstansi
+                              ? Shimmer.fromColors(
+                                  baseColor: Colors.grey.shade300,
+                                  highlightColor: Colors.grey.shade100,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Container(height: 14, width: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                                      const SizedBox(height: 8),
+                                      Container(height: 10, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                                      const SizedBox(height: 4),
+                                      Container(height: 10, width: 100, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                                    ],
+                                  ),
+                                )
+                              : Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      _namaInstansi,
+                                      style: const TextStyle(
+                                        color: Colors.black87,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _alamatInstansi,
+                                      style: const TextStyle(
+                                        color: Colors.black54,
+                                        fontSize: 11,
+                                        height: 1.3,
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                _alamatInstansi,
-                                style: const TextStyle(
-                                  color: Colors.black54,
-                                  fontSize: 11,
-                                  height: 1.3,
-                                ),
-                              ),
-                            ],
-                          ),
                         ),
                       ],
                     ),
@@ -351,12 +379,29 @@ class _BerandaScreenState extends State<BerandaScreen> {
                         
                         // Grid Menu
                         Expanded(
-                          child: GridView.count(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                            childAspectRatio: 0.85,
-                            children: [
+                          child: _isLoadingInstansi
+                              ? GridView.count(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: 0.85,
+                                  children: List.generate(6, (index) => Shimmer.fromColors(
+                                    baseColor: Colors.grey.shade300,
+                                    highlightColor: Colors.grey.shade100,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                  )),
+                                )
+                              : GridView.count(
+                                  crossAxisCount: 3,
+                                  crossAxisSpacing: 16,
+                                  mainAxisSpacing: 16,
+                                  childAspectRatio: 0.85,
+                                  children: [
                               // 1. Menu dinamis dari kategori logger (Pos)
                               ..._kategoriList.map((kat) {
                                 final namaKat = kat['nama_kategori'] ?? 'Unknown';
@@ -440,8 +485,9 @@ class _BerandaScreenState extends State<BerandaScreen> {
                 ),
               ],
             ),
-          ),
-        ],
+          ],
+        ),
+        ),
       ),
     );
   }

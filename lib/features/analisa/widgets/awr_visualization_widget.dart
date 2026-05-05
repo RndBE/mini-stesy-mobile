@@ -256,14 +256,18 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
   }
 
   Widget? _buildRainCard() {
-    final rainHour = _parseDoubleOrNull(widget.sensorData['curah_hujan_per_jam']);
-    final rainDay = _parseDoubleOrNull(widget.sensorData['curah_hujan_harian']);
+    final rawHour = _parseDoubleOrNull(widget.sensorData['curah_hujan_per_jam']) ?? _parseDoubleOrNull(widget.sensorData['curah_hujan']);
+    final rawDay = _parseDoubleOrNull(widget.sensorData['curah_hujan_harian']);
     
-    if (rainHour == null && rainDay == null) return null;
+    if (rawHour == null && rawDay == null) return null;
 
-    List<Widget> slides = [];
-    if (rainHour != null) slides.add(_buildRainSlide('Akumulasi 1 Jam', rainHour, true));
-    if (rainDay != null) slides.add(_buildRainSlide('Akumulasi Harian', rainDay, false));
+    final rainHour = rawHour ?? 0.0;
+    final rainDay = rawDay ?? 0.0;
+
+    List<Widget> slides = [
+      _buildRainSlide('Akumulasi 1 Jam', rainHour, true),
+      _buildRainSlide('Akumulasi Harian', rainDay, false),
+    ];
 
     return Container(
       padding: const EdgeInsets.all(12),
@@ -486,6 +490,7 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
         ),
         const SizedBox(height: 2),
         Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.baseline,
           textBaseline: TextBaseline.alphabetic,
           children: [

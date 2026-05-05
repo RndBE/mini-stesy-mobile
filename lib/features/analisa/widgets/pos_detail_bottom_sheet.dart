@@ -30,10 +30,12 @@ class PosDetailBottomSheet extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Handle bar
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Handle bar
           Container(
             width: 40,
             height: 4,
@@ -120,7 +122,14 @@ class PosDetailBottomSheet extends StatelessWidget {
           // Scrollable content
           Flexible(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+              padding: EdgeInsets.fromLTRB(
+                20, 
+                0, 
+                20, 
+                MediaQuery.of(context).padding.bottom > 0 
+                    ? MediaQuery.of(context).padding.bottom + 24 
+                    : 48
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -131,6 +140,7 @@ class PosDetailBottomSheet extends StatelessWidget {
             ),
           ),
         ],
+      ),
       ),
     );
   }

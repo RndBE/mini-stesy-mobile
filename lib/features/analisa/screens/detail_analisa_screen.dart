@@ -1085,7 +1085,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
         iconData = Icons.cloudy_snowing;
         break;
       case 'muka_air_tanah':
-        iconData = Icons.landscape;
+        assetPath = 'assets/images/muka_air_tanah.png';
         break;
       default:
         iconData = Icons.analytics_outlined;
@@ -1099,6 +1099,21 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
     ]);
 
     if (assetPath != null) {
+      if (assetPath.endsWith('.png')) {
+        Widget img = Image.asset(
+          assetPath,
+          width: 28,
+          height: 28,
+          fit: BoxFit.contain,
+        );
+        if (!widget.isOnline && colorFilter != null) {
+          return ColorFiltered(
+            colorFilter: colorFilter,
+            child: img,
+          );
+        }
+        return img;
+      }
       return SvgPicture.asset(
         assetPath,
         width: 28,

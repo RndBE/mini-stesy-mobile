@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class OnboardingScreen extends StatefulWidget {
@@ -213,10 +214,16 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           TextButton(
-                            onPressed: _completeOnboarding,
-                            child: const Text(
-                              "Lewati",
-                              style: TextStyle(
+                            onPressed: () {
+                              if (_currentPage == _onboardingData.length - 1) {
+                                SystemNavigator.pop(); // Exit app
+                              } else {
+                                _completeOnboarding(); // Skip to login
+                              }
+                            },
+                            child: Text(
+                              _currentPage == _onboardingData.length - 1 ? "Keluar" : "Lewati",
+                              style: const TextStyle(
                                 color: Color(0xFF2E3B84),
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,

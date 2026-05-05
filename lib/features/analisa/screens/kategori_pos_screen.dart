@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
+import 'package:shimmer/shimmer.dart';
 import '../../peta/data/peta_repository.dart';
 import '../widgets/pos_visualization_widget.dart';
 import 'dokumentasi_pos_screen.dart';
@@ -21,6 +22,26 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
   
   List<Map<String, dynamic>> _points = [];
   Map<String, dynamic>? _selectedPoint;
+  
+  bool _isSearching = false;
+  final TextEditingController _searchController = TextEditingController();
+
+  List<Map<String, dynamic>> get _filteredPoints {
+    if (!_isSearching || _searchController.text.isEmpty) {
+      return _points;
+    }
+    final query = _searchController.text.toLowerCase();
+    return _points.where((p) {
+      final name = (p['nama_logger'] ?? '').toString().toLowerCase();
+      return name.contains(query);
+    }).toList();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -66,27 +87,85 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF1E3A8A), // Biru gelap sesuai header
         elevation: 0,
-        centerTitle: true,
-        title: Text(
-          widget.kategori.toUpperCase(),
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        actions: [
-          PopupMenuButton<String>(
+        centerTitle: !_isSearching,
+        titleSpacing: _isSearching ? 16 : null,
+        title: _isSearching
+            ? Row(
+                children: [
+                  const Icon(Icons.search, color: Colors.white, size: 22),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: _searchController,
+                      autofocus: true,
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                      cursorColor: Colors.white,
+                      decoration: const InputDecoration(
+                        hintText: 'Cari...',
+                        hintStyle: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        border: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        errorBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        filled: false, // Memaksa background transparan
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                      onChanged: (val) {
+                        setState(() {
+                          if (_filteredPoints.isNotEmpty && !_filteredPoints.contains(_selectedPoint)) {
+                            _selectedPoint = _filteredPoints.first;
+                          } else if (_filteredPoints.isEmpty) {
+                            _selectedPoint = null;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _isSearching = false;
+                        _searchController.clear();
+                        if (_points.isNotEmpty && _selectedPoint == null) {
+                          _selectedPoint = _points.first;
+                        }
+                      });
+                    },
+                    child: const Icon(Icons.close, color: Colors.white, size: 22),
+                  ),
+                ],
+              )
+            : Text(
+                widget.kategori.toUpperCase(),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+        leading: _isSearching
+            ? const SizedBox.shrink()
+            : IconButton(
+                icon: const Icon(Icons.arrow_back_ios, color: Colors.white, size: 20),
+                onPressed: () => Navigator.pop(context),
+              ),
+        leadingWidth: _isSearching ? 0 : null,
+        actions: _isSearching
+            ? []
+            : [
+                PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: Colors.white),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
             color: Colors.white,
             onSelected: (value) {
-              if (value == 'Informasi') {
+              if (value == 'Cari') {
+                setState(() {
+                  _isSearching = true;
+                });
+              } else if (value == 'Informasi') {
                 if (_selectedPoint != null) {
                   _showInformasiDialog(_selectedPoint!);
                 } else {
@@ -107,10 +186,6 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
                     const SnackBar(content: Text('Pilih pos terlebih dahulu')),
                   );
                 }
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Menu $value dipilih (Belum Diimplementasikan)')),
-                );
               }
             },
             itemBuilder: (context) => [
@@ -154,7 +229,7 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildSkeletonLoading();
     }
 
     if (_errorMessage != null) {
@@ -198,17 +273,24 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
       children: [
         // ── Scrollable Chips Pemilihan Pos
         Container(
-          height: 60,
+          height: 50,
           color: const Color(0xFF1E3A8A), // Background biru gelap dari header dilanjutkan
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            itemCount: _points.length,
-            itemBuilder: (context, index) {
-              final point = _points[index];
-              final isOnline = (point['status'] ?? 'offline') == 'online';
-              final isSelected = _selectedPoint == point;
-              final namaLogger = point['nama_logger'] ?? 'Pos Unknown';
+          child: _filteredPoints.isEmpty 
+            ? Center(
+                child: Text(
+                  'Pos tidak ditemukan',
+                  style: TextStyle(color: Colors.white.withOpacity(0.7), fontSize: 13),
+                ),
+              )
+            : ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+                itemCount: _filteredPoints.length,
+                itemBuilder: (context, index) {
+                  final point = _filteredPoints[index];
+                  final isOnline = (point['status'] ?? 'offline') == 'online';
+                  final isSelected = _selectedPoint == point;
+                  final namaLogger = point['nama_logger'] ?? 'Pos Unknown';
 
               // Warna chip
               final chipBgColor = isOnline
@@ -315,11 +397,14 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
         Expanded(
           child: Container(
             color: const Color(0xFFF4F6F8), // Latar belakang abu-abu terang
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: _selectedPoint == null 
-                  ? const SizedBox.shrink()
-                  : PosVisualizationWidget(point: _selectedPoint!),
+            child: SafeArea(
+              top: false,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+                child: _selectedPoint == null 
+                    ? const SizedBox.shrink()
+                    : PosVisualizationWidget(point: _selectedPoint!),
+              ),
             ),
           ),
         ),
@@ -420,5 +505,145 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
         ],
       ),
     );
+  }
+
+  Widget _buildSkeletonLoading() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Skeleton Chips
+          Container(
+            height: 50,
+            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+            child: Row(
+              children: List.generate(4, (index) => Container(
+                width: 100,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+              )),
+            ),
+          ),
+          // Skeleton Date & Time
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(width: 150, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                Container(width: 60, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+              ],
+            ),
+          ),
+          // Skeleton Body Card
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+              child: _buildSkeletonVisualization(widget.kategori.toUpperCase()),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonVisualization(String kategori) {
+    if (kategori.contains('ARR')) {
+      return Column(
+        children: [
+          Container(height: 120, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Container(height: 120, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Container(height: 80, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+        ],
+      );
+    } else if (kategori.contains('AWR') || kategori.contains('AWQR')) {
+      return Column(
+        children: [
+          Container(height: 160, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Container(height: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 150, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(height: 100, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Container(height: 80, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+        ],
+      );
+    } else if (kategori.contains('AWLR')) {
+      // AWLR default to JIAT skeleton (Data Sumur Card + Well Animation + Health Logger)
+      // karena POS pertama yang muncul biasanya adalah AWLR JIAT.
+      return Column(
+        children: [
+          Container(height: 100, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Container(height: 250, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Container(height: 80, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+        ],
+      );
+    } else if (kategori.contains('AFMR')) {
+      // AFMR: River Animation + 3 Rows of Parameters + Health Logger
+      return Column(
+        children: [
+          Container(height: 250, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(height: 80, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+        ],
+      );
+    } else {
+      // Default: River Animation + 1 Row of Parameters + Health Logger
+      return Column(
+        children: [
+          Container(height: 250, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+              const SizedBox(width: 12),
+              Expanded(child: Container(height: 80, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)))),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(height: 80, width: double.infinity, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12))),
+        ],
+      );
+    }
   }
 }
