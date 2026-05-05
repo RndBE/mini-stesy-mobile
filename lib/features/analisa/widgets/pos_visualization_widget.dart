@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'well_animation_widget.dart';
 import 'river_animation_widget.dart';
 import 'awr_visualization_widget.dart';
+import 'awqr_visualization_widget.dart';
 import '../screens/detail_analisa_screen.dart';
 
 class PosVisualizationWidget extends StatelessWidget {
@@ -25,7 +26,8 @@ class PosVisualizationWidget extends StatelessWidget {
     final isAWLR = kategori.contains('AWLR');
     final isAWR = kategori.contains('AWR');
     final isAFMR = kategori.contains('AFMR');
-    final hideDataPengukuran = isARR || isAWR || isAWLR || isAFMR;
+    final isAWQR = kategori.contains('AWQR');
+    final hideDataPengukuran = isARR || isAWR || isAWLR || isAFMR || isAWQR;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -35,6 +37,7 @@ class PosVisualizationWidget extends StatelessWidget {
 
         // ── Visualisasi Animasi
         _buildVisualization(
+            context, point['id_logger'].toString(),
             kategori, subKategori, sensorData,
             jiatData, nonjiatData, isOnline),
 
@@ -55,6 +58,8 @@ class PosVisualizationWidget extends StatelessWidget {
   }
 
   Widget _buildVisualization(
+    BuildContext context,
+    String idLogger,
     String kategori,
     String? subKategori,
     Map<String, dynamic> sensorData,
@@ -106,12 +111,12 @@ class PosVisualizationWidget extends StatelessWidget {
       }
 
       // Non-JIAT (Sungai)
-      return _buildRiverCard(sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_tanah.svg');
+      return _buildRiverCard(context, idLogger, sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_tanah.svg');
     }
 
     // AFMR
     if (kategori.contains('AFMR')) {
-      return _buildRiverCard(sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_afmr.svg', isAFMR: true);
+      return _buildRiverCard(context, idLogger, sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_afmr.svg', isAFMR: true);
     }
 
     // ARR - curah hujan
@@ -133,6 +138,15 @@ class PosVisualizationWidget extends StatelessWidget {
     if (kategori.contains('AWR')) {
       return AwrVisualizationWidget(
         idLogger: point['id_logger'].toString(),
+        sensorData: sensorData,
+        isOnline: isOnline,
+      );
+    }
+
+    // AWQR - Automatic Water Quality
+    if (kategori.contains('AWQR')) {
+      return AwqrVisualizationWidget(
+        idLogger: idLogger,
         sensorData: sensorData,
         isOnline: isOnline,
       );
@@ -165,7 +179,7 @@ class PosVisualizationWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildRiverCard(Map<String, dynamic> sensorData, Map<String, dynamic>? nonjiatData, bool isOnline, String tiangAsset, {bool isAFMR = false}) {
+  Widget _buildRiverCard(BuildContext context, String idLogger, Map<String, dynamic> sensorData, Map<String, dynamic>? nonjiatData, bool isOnline, String tiangAsset, {bool isAFMR = false}) {
     final tma = (sensorData['tma'] as num?)?.toDouble();
     final elevMin = (nonjiatData?['elevasi_min'] as num?)?.toDouble();
     final debit = (sensorData['debit'] as num?)?.toDouble() ?? 0.0;
@@ -204,33 +218,33 @@ class PosVisualizationWidget extends StatelessWidget {
           if (isAFMR) ...[
             Row(
               children: [
-                Expanded(child: _buildSungaiCardItem('LUAS PENAMPANG BASAH', luasPenampang, 'm²', isOnline, assetPath: 'assets/images/afmr/luas_penampang_air.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'luas_penampang', 'LUAS PENAMPANG BASAH', luasPenampang, 'm²', isOnline, assetPath: 'assets/images/afmr/luas_penampang_air.svg')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem('DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _buildSungaiCardItem('FLOW VELOCITY', kecepatanAliran, 'm/s', isOnline, assetPath: 'assets/images/afmr/flow_velocity.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'flow_velocity', 'FLOW VELOCITY', kecepatanAliran, 'm/s', isOnline, assetPath: 'assets/images/afmr/flow_velocity.svg')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem('ELEVASI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'tma', 'ELEVASI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
               ],
             ),
             const SizedBox(height: 8),
             Row(
               children: [
-                Expanded(child: _buildSungaiCardItem('ELEVASI SENSOR', elevSensor, 'm', isOnline, assetPath: 'assets/images/afmr/elevasi_sensor.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'elevasi_sensor', 'ELEVASI SENSOR', elevSensor, 'm', isOnline, assetPath: 'assets/images/afmr/elevasi_sensor.svg')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem('JARAK SENSOR', jarakSensor, 'm', isOnline, assetPath: 'assets/images/afmr/jarak_sensor.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'jarak_sensor', 'JARAK SENSOR', jarakSensor, 'm', isOnline, assetPath: 'assets/images/afmr/jarak_sensor.svg')),
               ],
             ),
           ] else ...[
             Row(
               children: [
-                Expanded(child: _buildSungaiCardItem('TINGGI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'tma', 'TINGGI MUKA AIR', tma ?? 0.0, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg')),
                 const SizedBox(width: 8),
-                Expanded(child: _buildSungaiCardItem('DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
+                Expanded(child: _buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg')),
               ],
             ),
           ],
@@ -627,16 +641,33 @@ class PosVisualizationWidget extends StatelessWidget {
     );
   }
 
-  Widget _buildSungaiCardItem(String label, double value, String unit, bool isOnline, {IconData? icon, Color? color, String? assetPath}) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+  Widget _buildSungaiCardItem(BuildContext context, String idLogger, String parameterName, String label, double value, String unit, bool isOnline, {IconData? icon, Color? color, String? assetPath}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailAnalisaScreen(
+              idLogger: idLogger,
+              parameterName: parameterName,
+              isOnline: isOnline,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.transparent, // Ensures it is fully clickable
+        ),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (assetPath != null)
             SvgPicture.asset(
@@ -684,11 +715,13 @@ class PosVisualizationWidget extends StatelessWidget {
               ),
             ],
           ),
-          ),
+        ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildLegendItem(Color color, String label) {
     return Row(

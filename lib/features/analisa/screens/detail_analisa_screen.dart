@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
 import '../data/analisa_repository.dart';
@@ -334,11 +335,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
               color: Colors.blue.shade50,
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              Icons.analytics_outlined,
-              color: widget.isOnline ? Colors.blue.shade700 : Colors.grey,
-              size: 28,
-            ),
+            child: _buildParameterIcon(),
           ),
           const SizedBox(width: 16),
           Column(
@@ -1005,5 +1002,115 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
         );
       },
     );
+  }
+
+  Widget _buildParameterIcon() {
+    String? assetPath;
+    IconData? iconData;
+
+    switch (_currentParameterName.toLowerCase()) {
+      case 'tma':
+      case 'elevasi_muka_air':
+        assetPath = 'assets/images/awlr/elevasi_muka_air.svg';
+        break;
+      case 'debit':
+        assetPath = 'assets/images/awlr/debit.svg';
+        break;
+      case 'luas_penampang':
+      case 'luas_penampang_basah':
+        assetPath = 'assets/images/afmr/luas_penampang_air.svg';
+        break;
+      case 'flow_velocity':
+      case 'kecepatan_aliran':
+        assetPath = 'assets/images/afmr/flow_velocity.svg';
+        break;
+      case 'elevasi_sensor':
+      case 'tinggi_sensor':
+        assetPath = 'assets/images/afmr/elevasi_sensor.svg';
+        break;
+      case 'jarak_sensor':
+        assetPath = 'assets/images/afmr/jarak_sensor.svg';
+        break;
+      case 'kecepatan_angin':
+        assetPath = 'assets/images/awr/kecepatan_angin.svg';
+        break;
+      case 'arah_angin':
+        assetPath = 'assets/images/awr/arah_angin.svg';
+        break;
+      case 'kecerahan':
+        assetPath = 'assets/images/awr/kecerahan.svg';
+        break;
+      case 'arah_cahaya':
+        assetPath = 'assets/images/awr/arah.svg';
+        break;
+      case 'temperature':
+      case 'temp_logger':
+      case 'suhu':
+        assetPath = 'assets/images/beranda/temper_online.svg';
+        break;
+      case 'tekanan_udara':
+        assetPath = 'assets/images/awr/tekanan_udara.svg';
+        break;
+      case 'humidity':
+      case 'kelembaban':
+      case 'humidity_logger':
+        assetPath = 'assets/images/beranda/humidity_online.svg';
+        break;
+      case 'ph_air':
+        assetPath = 'assets/images/awqr/ph_air.svg';
+        break;
+      case 'suhu_air':
+        assetPath = 'assets/images/awqr/suhu_air.svg';
+        break;
+      case 'orp':
+        assetPath = 'assets/images/awqr/orp.svg';
+        break;
+      case 'conductivity':
+        assetPath = 'assets/images/awqr/conductivity.svg';
+        break;
+      case 'salinity':
+        assetPath = 'assets/images/awqr/salinity.svg';
+        break;
+      case 'tds':
+        assetPath = 'assets/images/awqr/total_dissolved_solids.svg';
+        break;
+      case 'turbidity':
+        assetPath = 'assets/images/awqr/turbidity.svg';
+        break;
+      case 'battery':
+      case 'battery_logger':
+        assetPath = 'assets/images/beranda/battery_online.svg';
+        break;
+      case 'curah_hujan':
+        iconData = Icons.cloudy_snowing;
+        break;
+      case 'muka_air_tanah':
+        iconData = Icons.landscape;
+        break;
+      default:
+        iconData = Icons.analytics_outlined;
+    }
+
+    final colorFilter = widget.isOnline ? null : const ColorFilter.matrix(<double>[
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0.2126, 0.7152, 0.0722, 0, 0,
+      0, 0, 0, 1, 0,
+    ]);
+
+    if (assetPath != null) {
+      return SvgPicture.asset(
+        assetPath,
+        width: 28,
+        height: 28,
+        colorFilter: colorFilter,
+      );
+    } else {
+      return Icon(
+        iconData ?? Icons.analytics_outlined,
+        color: widget.isOnline ? Colors.blue.shade700 : Colors.grey,
+        size: 28,
+      );
+    }
   }
 }

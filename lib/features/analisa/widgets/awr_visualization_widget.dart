@@ -56,14 +56,31 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
   }
 
   // Helper function to build small parameter cards
-  Widget _buildParamItem(String label, String value, String unit, String iconPath, {IconData? fallbackIcon}) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade100),
-      ),
+  Widget _buildParamItem(String label, String value, String unit, String iconPath, String parameterName, {IconData? fallbackIcon}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailAnalisaScreen(
+              idLogger: widget.idLogger,
+              parameterName: parameterName,
+              isOnline: widget.isOnline,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        decoration: const BoxDecoration(
+          color: Colors.transparent,
+        ),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: Colors.grey.shade100),
+          ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -112,8 +129,10 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  ),
+);
+}
 
   Widget _buildWindCard() {
     final speed = _parseDouble(widget.sensorData['kecepatan_angin']);
@@ -172,9 +191,9 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
             flex: 3,
             child: Column(
               children: [
-                _buildParamItem('KECEPATAN ANGIN', speed.toStringAsFixed(3), 'm/s', 'assets/images/awr/kecepatan_angin.svg'),
+                _buildParamItem('KECEPATAN ANGIN', speed.toStringAsFixed(3), 'm/s', 'assets/images/awr/kecepatan_angin.svg', 'kecepatan_angin'),
                 const SizedBox(height: 8),
-                _buildParamItem('ARAH ANGIN', direction.toStringAsFixed(2), '°', 'assets/images/awr/arah_angin.svg'),
+                _buildParamItem('ARAH ANGIN', direction.toStringAsFixed(2), '°', 'assets/images/awr/arah_angin.svg', 'arah_angin'),
               ],
             ),
           ),
@@ -202,9 +221,9 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.black87),
           ),
           const SizedBox(height: 12),
-          _buildParamItem('KECERAHAN', light.toStringAsFixed(3), 'K Lux', 'assets/images/awr/kecerahan.svg'),
+          _buildParamItem('KECERAHAN', light.toStringAsFixed(3), 'K Lux', 'assets/images/awr/kecerahan.svg', 'kecerahan'),
           const SizedBox(height: 8),
-          _buildParamItem('ARAH', lightDir.toStringAsFixed(1), '°', 'assets/images/awr/arah.svg'),
+          _buildParamItem('ARAH', lightDir.toStringAsFixed(1), '°', 'assets/images/awr/arah.svg', 'arah_cahaya'),
         ],
       ),
     );
@@ -380,9 +399,9 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
               children: [
-                _buildAirItem('TEMPERATURE', temp.toStringAsFixed(2), '°C', assetPath: 'assets/images/beranda/temper_online.svg'),
-                _buildAirItem('TEKANAN UDARA', press.toStringAsFixed(1), 'hPa', assetPath: 'assets/images/awr/tekanan_udara.svg'),
-                _buildAirItem('KELEMBABAN', humid.toStringAsFixed(2), '%', assetPath: 'assets/images/beranda/humidity_online.svg'),
+                _buildAirItem('TEMPERATURE', temp.toStringAsFixed(2), '°C', 'temperature', assetPath: 'assets/images/beranda/temper_online.svg'),
+                _buildAirItem('TEKANAN UDARA', press.toStringAsFixed(1), 'hPa', 'tekanan_udara', assetPath: 'assets/images/awr/tekanan_udara.svg'),
+                _buildAirItem('KELEMBABAN', humid.toStringAsFixed(2), '%', 'humidity', assetPath: 'assets/images/beranda/humidity_online.svg'),
               ],
             ),
           ),
@@ -391,10 +410,25 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
     );
   }
 
-  Widget _buildAirItem(String label, String value, String unit, {IconData? icon, Color? color, String? assetPath}) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
+  Widget _buildAirItem(String label, String value, String unit, String parameterName, {IconData? icon, Color? color, String? assetPath}) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DetailAnalisaScreen(
+              idLogger: widget.idLogger,
+              parameterName: parameterName,
+              isOnline: widget.isOnline,
+            ),
+          ),
+        );
+      },
+      child: Container(
+        color: Colors.transparent,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
         if (assetPath != null)
           SvgPicture.asset(
             assetPath,
@@ -433,6 +467,8 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
           ],
         ),
       ],
+    ),
+      ),
     );
   }
 }
