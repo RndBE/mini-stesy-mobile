@@ -399,7 +399,7 @@ class PosVisualizationWidget extends StatelessWidget {
                 const SizedBox(width: 36),
                 _buildDataLoggerSvgItem(context, idLogger, 'battery_online.svg', 'battery_offline.svg', Colors.green, 'BATTERY', 'battery_logger', '$battery Volt', isOnline),
                 const SizedBox(width: 36),
-                _buildDataLoggerSvgItem(context, idLogger, 'temper_online.svg', 'temper_offline.svg', Colors.orange, 'TEMPERATURE', 'temp_logger', '$temp °C', isOnline),
+                _buildDataLoggerSvgItem(context, idLogger, 'temper_online.svg', 'temper_offline.svg', Colors.orange, 'TEMPERATURE', 'temperature_logger', '$temp °C', isOnline),
               ],
             ),
           ),

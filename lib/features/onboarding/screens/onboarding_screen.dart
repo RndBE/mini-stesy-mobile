@@ -183,13 +183,32 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                               ),
                               children: [
                                 TextSpan(text: _onboardingData[_currentPage]["title1"] as String),
-                                TextSpan(
-                                  text: _onboardingData[_currentPage]["titleHighlight"] as String,
-                                  style: const TextStyle(
-                                    color: Color(0xFF2E3B84),
-                                    decoration: TextDecoration.underline,
-                                    decorationColor: Color(0xFFFF3B30), // Red underline
-                                    decorationThickness: 2.5, // Make it a bit thicker
+                                WidgetSpan(
+                                  alignment: PlaceholderAlignment.baseline,
+                                  baseline: TextBaseline.alphabetic,
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Positioned(
+                                        bottom: -3, // Turunkan posisi garis (Bisa diganti 0 atau -2 kalau mau lebih turun lagi)
+                                        left: 0,
+                                        right: 0,
+                                        child: Container(
+                                          height: 3, // Ketebalan garis
+                                          color: const Color(0xFFFF3B30), // Warna merah solid
+                                        ),
+                                      ),
+                                      Text(
+                                        _onboardingData[_currentPage]["titleHighlight"] as String,
+                                        style: const TextStyle(
+                                          color: Color(0xFF2E3B84),
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.3,
+                                          fontFamily: 'Inter',
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],

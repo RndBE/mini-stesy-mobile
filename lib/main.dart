@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+ import 'package:flutter/material.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/beranda/screens/beranda_screen.dart';
@@ -22,7 +22,7 @@ class StesyApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
       darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      themeMode: ThemeMode.light,
       home: const SplashRouter(),
       routes: {
         '/onboarding': (_) => const OnboardingScreen(),
@@ -91,68 +91,56 @@ class _SplashRouterState extends State<SplashRouter>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0D47A1),
-              Color(0xFF1565C0),
-              Color(0xFF006064),
-            ],
-          ),
-        ),
-        child: Center(
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      width: 2,
+      backgroundColor: Colors.white,
+      body: ScaleTransition(
+        scale: _scaleAnim,
+        child: Stack(
+          children: [
+            // Konten Tengah (Ilustrasi & Loading)
+            Center(
+              child: Transform.translate(
+                offset: const Offset(0, -80), // Ilustrasi & loading dinaikkan ke atas
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Image.asset(
+                      'assets/images/login-page.png',
+                      width: 320,
+                      height: 320,
+                      fit: BoxFit.contain,
                     ),
-                  ),
-                  child: const Icon(
-                    Icons.water_drop_rounded,
-                    size: 56,
-                    color: Colors.white,
-                  ),
+                    const SizedBox(height: 48),
+                    const CircularProgressIndicator(
+                      color: Color(0xFF2B3377),
+                      strokeWidth: 2,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 24),
-                const Text(
-                  'STESY',
-                  style: TextStyle(
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                    letterSpacing: 6,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Sistem Telemetri Sumber Daya Air',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.white.withValues(alpha: 0.8),
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                const SizedBox(height: 48),
-                const CircularProgressIndicator(
-                  color: Colors.white,
-                  strokeWidth: 2,
-                ),
-              ],
+              ),
             ),
-          ),
+
+            // Logo Bawah (Dipaku di paling bawah layar)
+            Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 100.0), // Jarak dari ujung bawah layar diperbesar agar posisinya lebih naik
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Image.asset(
+                      'assets/images/logo 1.png',
+                      height: 28, // Ukuran logo dikecilkan
+                    ),
+                    const SizedBox(width: 24), // Jarak antara kedua logo
+                    Image.asset(
+                      'assets/images/mini_stesy 1.png',
+                      height: 28, // Ukuran logo dikecilkan
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

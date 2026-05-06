@@ -1,9 +1,21 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
-import 'package:fl_chart/fl_chart.dart';
 import 'package:intl/intl.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:syncfusion_flutter_charts/charts.dart';
 import '../data/analisa_repository.dart';
 import '../widgets/custom_date_pickers.dart';
+
+class ChartData {
+  ChartData(this.time, this.min, this.maks, this.rerata);
+  final DateTime time;
+  final double min;
+  final double maks;
+  final double rerata;
+}
 
 class DetailAnalisaScreen extends StatefulWidget {
   final String idLogger;
@@ -28,9 +40,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   bool _isLoading = true;
   String? _errorMessage;
 
-  List<FlSpot> _spots = [];
-  List<FlSpot> _minSpots = [];
-  List<FlSpot> _maxSpots = [];
+  List<ChartData> _chartData = [];
   List<Map<String, dynamic>> _tableData = [];
   String _satuan = '';
   double _minY = 0;
@@ -54,6 +64,43 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       end: DateTime.now(),
     );
     _fetchData();
+  }
+
+  Future<void> _downloadCsv() async {
+    if (_tableData.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Tidak ada data untuk diunduh')),
+        );
+      }
+      return;
+    }
+
+    try {
+      final StringBuffer csv = StringBuffer();
+      csv.writeln('Waktu,Minimum,Maksimum,Rerata');
+      
+      for (var row in _tableData) {
+        final waktu = row['waktu'] ?? '';
+        final min = row['min']?.toStringAsFixed(2) ?? '';
+        final maks = row['maks']?.toStringAsFixed(2) ?? '';
+        final rerata = row['rerata']?.toStringAsFixed(2) ?? '';
+        csv.writeln('"$waktu","$min","$maks","$rerata"');
+      }
+
+      final Directory tempDir = await getTemporaryDirectory();
+      final String filePath = '${tempDir.path}/analisa_data_${DateTime.now().millisecondsSinceEpoch}.csv';
+      final File file = File(filePath);
+      await file.writeAsString(csv.toString());
+
+      await Share.shareXFiles([XFile(filePath)], text: 'Data Analisa ${_formatParamName(_currentParameterName)}');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Gagal membuat file CSV: $e')),
+        );
+      }
+    }
   }
 
   Future<void> _fetchData() async {
@@ -134,9 +181,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   void _processData(List? rawData, String column) {
     if (rawData == null || rawData.isEmpty || column.isEmpty) {
       setState(() {
-        _spots = [];
-        _minSpots = [];
-        _maxSpots = [];
+        _chartData = [];
         _tableData = [];
         _isLoading = false;
       });
@@ -164,13 +209,10 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       }
     }
 
-    List<FlSpot> spots = [];
-    List<FlSpot> minSpots = [];
-    List<FlSpot> maxSpots = [];
+    List<ChartData> chartData = [];
     List<Map<String, dynamic>> tableData = [];
     
     final sortedKeys = grouped.keys.toList()..sort();
-    int i = 0;
     double globalMin = double.infinity;
     double globalMax = double.negativeInfinity;
 
@@ -190,10 +232,16 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
         'rerata': rerata,
       });
 
-      spots.add(FlSpot(i.toDouble(), rerata));
-      minSpots.add(FlSpot(i.toDouble(), min));
-      maxSpots.add(FlSpot(i.toDouble(), maks));
-      i++;
+      DateTime parsedTime;
+      if (_selectedRange == 'Hari') {
+        parsedTime = DateTime.parse('$key:00');
+      } else if (_selectedRange == 'Tahun') {
+        parsedTime = DateTime.parse('$key-01');
+      } else {
+        parsedTime = DateTime.parse(key);
+      }
+
+      chartData.add(ChartData(parsedTime, min, maks, rerata));
     }
 
     // Set chart boundaries
@@ -207,9 +255,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
     if (padding == 0) padding = 1;
     
     setState(() {
-      _spots = spots;
-      _minSpots = minSpots;
-      _maxSpots = maxSpots;
+      _chartData = chartData;
       // Urutkan tabel dari yang terbaru
       _tableData = tableData.reversed.toList();
       _minY = globalMin - padding;
@@ -248,9 +294,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
+            icon: const Icon(Icons.download, color: Colors.white),
             onPressed: () {
-              _fetchData();
+              _downloadCsv();
             },
           ),
         ],
@@ -261,7 +307,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
 
   Widget _buildBody() {
     if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return _buildSkeletonLoading();
     }
 
     if (_errorMessage != null) {
@@ -313,6 +359,73 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
     );
   }
 
+  Widget _buildSkeletonLoading() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey.shade300,
+        highlightColor: Colors.grey.shade100,
+        child: Column(
+          children: [
+            // Header Info Card Skeleton
+            Container(
+              height: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // Segmented Buttons Skeleton
+            Row(
+              children: List.generate(4, (index) => Expanded(
+                child: Container(
+                  height: 36,
+                  margin: EdgeInsets.only(right: index == 3 ? 0 : 8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              )),
+            ),
+            const SizedBox(height: 16),
+
+            // Selector Parameter Skeleton
+            Container(
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Chart Card Skeleton
+            Container(
+              height: 300,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // Data Table Card Skeleton
+            Container(
+              height: 250,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildHeaderInfoCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -329,14 +442,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       ),
       child: Row(
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: _buildParameterIcon(),
-          ),
+          _buildParameterIcon(),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -508,7 +614,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
             ),
           ),
           const SizedBox(height: 24),
-          if (_spots.isEmpty)
+          if (_chartData.isEmpty)
             SizedBox(
               height: 200,
               child: Center(
@@ -525,228 +631,188 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
               ),
             )
           else
-            AspectRatio(
-              aspectRatio: 1.5,
-              child: LineChart(
-                LineChartData(
-                lineTouchData: LineTouchData(
-                  touchTooltipData: LineTouchTooltipData(
-                    getTooltipColor: (spot) => Colors.white,
-                    fitInsideHorizontally: true,
-                    fitInsideVertically: true,
-                    maxContentWidth: 250,
-                    tooltipRoundedRadius: 12,
-                    tooltipPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    tooltipBorder: const BorderSide(color: Colors.black12, width: 1),
-                    getTooltipItems: (List<LineBarSpot> touchedSpots) {
-                      if (touchedSpots.isEmpty) return [];
-
-                      final x = touchedSpots.first.x.toInt();
-                      final int idx = _tableData.length - 1 - x;
-                      String timeLabel = '';
-                      if (idx >= 0 && idx < _tableData.length) {
-                        final timeStr = _tableData[idx]['waktu'] as String;
-                        if (_selectedRange == 'Hari') {
-                          timeLabel = timeStr.substring(11, 16); // HH:mm
-                        } else if (_selectedRange == 'Tahun') {
-                          timeLabel = DateFormat('MMMM yyyy', 'id_ID').format(DateTime.parse('$timeStr-01'));
-                        } else {
-                          timeLabel = DateFormat('dd MMM yyyy', 'id_ID').format(DateTime.parse(timeStr));
-                        }
+            SizedBox(
+              height: 250,
+              child: SfCartesianChart(
+                margin: const EdgeInsets.all(0),
+                trackballBehavior: TrackballBehavior(
+                  enable: true,
+                  activationMode: ActivationMode.singleTap,
+                  tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+                  builder: (BuildContext context, TrackballDetails trackballDetails) {
+                    final modeInfo = trackballDetails.groupingModeInfo;
+                    if (modeInfo == null || modeInfo.points.isEmpty) return const SizedBox.shrink();
+                    
+                    final firstPoint = modeInfo.points.first;
+                    String timeLabel = '';
+                    if (firstPoint.x is DateTime) {
+                      final DateTime time = firstPoint.x;
+                      if (_selectedRange == 'Hari') {
+                        timeLabel = DateFormat('HH:mm').format(time);
+                      } else if (_selectedRange == 'Tahun') {
+                        timeLabel = DateFormat('MMMM yyyy', 'id_ID').format(time);
+                      } else {
+                        timeLabel = DateFormat('dd MMM yyyy', 'id_ID').format(time);
                       }
+                    }
 
-                      return touchedSpots.map((spot) {
-                        String label = '';
+                    Widget? rerataRow;
+                    Widget? minRow;
+                    Widget? maksRow;
+
+                    for (int i = 0; i < modeInfo.points.length; i++) {
+                      final point = modeInfo.points[i];
+                      final series = modeInfo.visibleSeriesList[i];
+                      final seriesName = series.name;
+
+                      if (seriesName != null && seriesName.isNotEmpty) {
                         Color dotColor = Colors.black;
-                        if (spot.barIndex == 0) {
-                          label = 'Maks';
+                        String labelName = seriesName;
+                        if (seriesName == 'Maks') {
                           dotColor = const Color(0xFF4F46E5);
-                        } else if (spot.barIndex == 1) {
-                          label = 'Rerata';
+                          labelName = 'Maksimum';
+                        } else if (seriesName == 'Rerata') {
                           dotColor = const Color(0xFF1E3A8A);
-                        } else {
-                          label = 'Min';
+                        } else if (seriesName == 'Min') {
                           dotColor = const Color(0xFF38BDF8);
+                          labelName = 'Minimum';
                         }
 
-                        final isFirst = spot.barIndex == touchedSpots.first.barIndex;
-                        
-                        return LineTooltipItem(
-                          isFirst ? '$timeLabel\n' : '',
-                          const TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        final yValue = point.y;
+                        final yString = yValue is double ? yValue.toStringAsFixed(2) : yValue.toString();
+
+                        final row = Padding(
+                          padding: const EdgeInsets.only(bottom: 4),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text('● ', style: TextStyle(color: dotColor, fontSize: 14)),
+                              Text('$labelName: ', style: const TextStyle(color: Colors.black87, fontSize: 12)),
+                              Text('$yString $_satuan', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                            ],
                           ),
-                          textAlign: TextAlign.left,
-                          children: [
-                            TextSpan(
-                              text: '● ',
-                              style: TextStyle(color: dotColor, fontSize: 16),
-                            ),
-                            TextSpan(
-                              text: '$label:  ',
-                              style: const TextStyle(
-                                color: Colors.black87,
-                                fontWeight: FontWeight.normal,
-                                fontSize: 13,
-                              ),
-                            ),
-                            TextSpan(
-                              text: '${spot.y.toStringAsFixed(2)} $_satuan',
-                              style: const TextStyle(
-                                color: Colors.black,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ],
                         );
-                      }).toList();
-                    },
-                  ),
-                  handleBuiltInTouches: true,
-                ),
-                minY: _minY,
-                maxY: _maxY,
-                gridData: FlGridData(
-                  show: true,
-                  drawVerticalLine: false,
-                  horizontalInterval: _intervalY,
-                  getDrawingHorizontalLine: (value) {
-                    return FlLine(
-                      color: Colors.grey.shade200,
-                      strokeWidth: 1,
+
+                        if (seriesName == 'Rerata') rerataRow = row;
+                        else if (seriesName == 'Min') minRow = row;
+                        else if (seriesName == 'Maks') maksRow = row;
+                      }
+                    }
+
+                    List<Widget> rows = [];
+                    if (rerataRow != null) rows.add(rerataRow);
+                    if (minRow != null) rows.add(minRow);
+                    if (maksRow != null) rows.add(maksRow);
+
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.black12),
+                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          if (timeLabel.isNotEmpty) ...[
+                            Text(timeLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
+                            const SizedBox(height: 6),
+                            Container(height: 1, width: 120, color: Colors.black12),
+                            const SizedBox(height: 6),
+                          ],
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: rows,
+                          ),
+                        ],
+                      ),
                     );
                   },
-                ),
-                titlesData: FlTitlesData(
-                  show: true,
-                  rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                  bottomTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      reservedSize: 30,
-                      interval: 1,
-                      getTitlesWidget: (value, meta) {
-                        if (value % 1 != 0 || value < 0 || value >= _tableData.length) {
-                           return const SizedBox.shrink();
-                        }
-                        // we reverse the tableData for display, but spots are in chronological order
-                        // the index for spot is chronological.
-                        // _tableData is descending. So spot index `value` corresponds to `_tableData[_tableData.length - 1 - value]`
-                        final int idx = _tableData.length - 1 - value.toInt();
-                        if (idx < 0 || idx >= _tableData.length) return const SizedBox.shrink();
-
-                        final timeStr = _tableData[idx]['waktu'] as String;
-                        // simplify the label
-                        String label = '';
-                        if (_selectedRange == 'Hari') {
-                          label = timeStr.substring(11, 16); // HH:mm
-                        } else if (_selectedRange == 'Tahun') {
-                           label = timeStr.substring(5, 7); // MM
-                        } else {
-                           label = timeStr.substring(8, 10); // dd
-                        }
-                        
-                        // only show a few labels if there are many spots
-                        if (_spots.length > 7 && value % (_spots.length / 5).ceil() != 0 && value != _spots.length - 1) {
-                           return const SizedBox.shrink();
-                        }
-
-                        return Padding(
-                          padding: const EdgeInsets.only(top: 8),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: Colors.grey.shade600,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 10,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
+                  markerSettings: const TrackballMarkerSettings(
+                    markerVisibility: TrackballVisibilityMode.visible,
+                    height: 10,
+                    width: 10,
+                    borderWidth: 2,
                   ),
-                  leftTitles: AxisTitles(
-                    sideTitles: SideTitles(
-                      showTitles: true,
-                      interval: _intervalY,
-                      getTitlesWidget: (value, meta) {
-                        return Text(
-                          value.toStringAsFixed(1),
-                          style: TextStyle(
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 10,
-                          ),
-                        );
-                      },
-                      reservedSize: 32,
-                    ),
-                  ),
+                  lineType: TrackballLineType.vertical,
+                  lineColor: Colors.grey.withOpacity(0.5),
+                  lineWidth: 1,
                 ),
-                borderData: FlBorderData(
-                  show: true,
-                  border: Border(
-                    bottom: BorderSide(color: Colors.grey.shade300, width: 1),
-                    left: BorderSide(color: Colors.grey.shade300, width: 1),
-                    right: BorderSide.none,
-                    top: BorderSide.none,
-                  ),
+                zoomPanBehavior: ZoomPanBehavior(
+                  enablePinching: true,
+                  enablePanning: true,
                 ),
-                betweenBarsData: [
-                  BetweenBarsData(
-                    fromIndex: 0,
-                    toIndex: 2,
+                primaryXAxis: DateTimeAxis(
+                  dateFormat: _selectedRange == 'Hari' ? DateFormat('HH:mm') : 
+                              _selectedRange == 'Tahun' ? DateFormat('MMM yy') : DateFormat('dd MMM'),
+                  majorGridLines: const MajorGridLines(width: 0),
+                  intervalType: _selectedRange == 'Hari' ? DateTimeIntervalType.hours : 
+                                _selectedRange == 'Tahun' ? DateTimeIntervalType.months : DateTimeIntervalType.days,
+                  labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                ),
+                primaryYAxis: NumericAxis(
+                  minimum: _minY,
+                  maximum: _maxY,
+                  interval: _intervalY,
+                  axisLine: const AxisLine(width: 0),
+                  majorTickLines: const MajorTickLines(size: 0),
+                  majorGridLines: MajorGridLines(color: Colors.grey.shade200),
+                  labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+                ),
+                series: <CartesianSeries>[
+                  // Shaded Area (between min and max)
+                  RangeAreaSeries<ChartData, DateTime>(
+                    dataSource: _chartData,
+                    xValueMapper: (ChartData data, _) => data.time,
+                    highValueMapper: (ChartData data, _) => data.maks,
+                    lowValueMapper: (ChartData data, _) => data.min,
                     color: const Color(0xFF4F46E5).withOpacity(0.1),
+                    animationDuration: 1000,
+                    enableTooltip: false,
                   ),
-                ],
-                lineBarsData: [
-                  // Index 0: Maks (dashed)
-                  LineChartBarData(
-                    spots: _maxSpots,
-                    isCurved: true,
-                    color: const Color(0xFF4F46E5), // Indigo
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dashArray: [5, 5],
-                    dotData: const FlDotData(show: false),
+                  // Max Line
+                  FastLineSeries<ChartData, DateTime>(
+                    name: 'Maks',
+                    dataSource: _chartData,
+                    xValueMapper: (ChartData data, _) => data.time,
+                    yValueMapper: (ChartData data, _) => data.maks,
+                    color: const Color(0xFF4F46E5),
+                    dashArray: <double>[5, 5],
+                    width: 2,
+                    animationDuration: 1000,
                   ),
-                  // Index 1: Rerata (solid)
-                  LineChartBarData(
-                    spots: _spots,
-                    isCurved: true,
-                    color: const Color(0xFF1E3A8A), // Dark blue
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dotData: FlDotData(
-                      show: _spots.length < 20, // hide dots if too many
-                      getDotPainter: (spot, percent, barData, index) {
-                        return FlDotCirclePainter(
-                          radius: 3,
-                          color: Colors.white,
-                          strokeWidth: 2,
-                          strokeColor: const Color(0xFF1E3A8A),
-                        );
-                      },
+                  // Min Line
+                  FastLineSeries<ChartData, DateTime>(
+                    name: 'Min',
+                    dataSource: _chartData,
+                    xValueMapper: (ChartData data, _) => data.time,
+                    yValueMapper: (ChartData data, _) => data.min,
+                    color: const Color(0xFF38BDF8),
+                    dashArray: <double>[5, 5],
+                    width: 2,
+                    animationDuration: 1000,
+                  ),
+                  // Rerata Line
+                  FastLineSeries<ChartData, DateTime>(
+                    name: 'Rerata',
+                    dataSource: _chartData,
+                    xValueMapper: (ChartData data, _) => data.time,
+                    yValueMapper: (ChartData data, _) => data.rerata,
+                    color: const Color(0xFF1E3A8A),
+                    width: 2,
+                    markerSettings: const MarkerSettings(
+                      isVisible: true,
+                      color: Colors.white,
+                      borderColor: Color(0xFF1E3A8A),
+                      borderWidth: 2,
                     ),
-                  ),
-                  // Index 2: Min (dashed)
-                  LineChartBarData(
-                    spots: _minSpots,
-                    isCurved: true,
-                    color: const Color(0xFF38BDF8), // Light blue
-                    barWidth: 2,
-                    isStrokeCapRound: true,
-                    dashArray: [5, 5],
-                    dotData: const FlDotData(show: false),
+                    animationDuration: 1000,
                   ),
                 ],
               ),
             ),
-          ),
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -969,7 +1035,6 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                       final isSelected = paramName == _currentParameterName;
                       return ListTile(
                         dense: true,
-                        visualDensity: const VisualDensity(horizontal: 0, vertical: -4),
                         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
                         title: Text(
                           _formatParamName(paramName),
@@ -1045,6 +1110,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
         break;
       case 'temperature':
       case 'temp_logger':
+      case 'temperature_logger':
       case 'suhu':
         assetPath = 'assets/images/beranda/temper_online.svg';
         break;
@@ -1102,8 +1168,8 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       if (assetPath.endsWith('.png')) {
         Widget img = Image.asset(
           assetPath,
-          width: 28,
-          height: 28,
+          width: 32,
+          height: 32,
           fit: BoxFit.contain,
         );
         if (!widget.isOnline && colorFilter != null) {
@@ -1116,15 +1182,15 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       }
       return SvgPicture.asset(
         assetPath,
-        width: 28,
-        height: 28,
+        width: 32,
+        height: 32,
         colorFilter: colorFilter,
       );
     } else {
       return Icon(
         iconData ?? Icons.analytics_outlined,
         color: widget.isOnline ? Colors.blue.shade700 : Colors.grey,
-        size: 28,
+        size: 32,
       );
     }
   }

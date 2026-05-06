@@ -8,6 +8,7 @@ import '../../analisa/screens/kategori_pos_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class BerandaScreen extends StatefulWidget {
   const BerandaScreen({super.key});
@@ -300,10 +301,16 @@ class _BerandaScreenState extends State<BerandaScreen> {
                                   ),
                                 )
                               : _logoInstansiUrl != null
-                                  ? Image.network(
-                                      _logoInstansiUrl!, 
+                                  ? CachedNetworkImage(
+                                      imageUrl: _logoInstansiUrl!, 
                                       fit: BoxFit.contain,
-                                      errorBuilder: (context, error, stackTrace) => const Icon(
+                                      placeholder: (context, url) => const Center(
+                                        child: SizedBox(
+                                          width: 20, height: 20, 
+                                          child: CircularProgressIndicator(strokeWidth: 2)
+                                        )
+                                      ),
+                                      errorWidget: (context, url, error) => const Icon(
                                         Icons.broken_image_rounded, 
                                         color: Colors.grey, 
                                         size: 32,

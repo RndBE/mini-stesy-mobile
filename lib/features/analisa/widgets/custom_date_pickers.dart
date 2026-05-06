@@ -98,7 +98,7 @@ class _MonthPickerDialogState extends State<_MonthPickerDialog> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 20),
+                        icon: const Icon(Icons.chevron_left, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() {
                             _selectedYear--;
@@ -113,11 +113,11 @@ class _MonthPickerDialogState extends State<_MonthPickerDialog> {
                         ),
                         child: Text(
                           _selectedYear.toString(),
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 20),
+                        icon: const Icon(Icons.chevron_right, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() {
                             _selectedYear++;
@@ -297,7 +297,7 @@ class _YearPickerDialogState extends State<_YearPickerDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 20),
+                        icon: const Icon(Icons.chevron_left, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() {
                             _startYear -= 12;
@@ -312,11 +312,11 @@ class _YearPickerDialogState extends State<_YearPickerDialog> {
                         ),
                         child: Text(
                           '$_startYear - ${_startYear + 11}',
-                          style: const TextStyle(fontWeight: FontWeight.bold),
+                          style: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 20),
+                        icon: const Icon(Icons.chevron_right, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() {
                             _startYear += 12;
@@ -489,7 +489,7 @@ class _DayPickerDialogState extends State<_DayPickerDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 20),
+                        icon: const Icon(Icons.chevron_left, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() { _displayMonth = DateTime(_displayMonth.year, _displayMonth.month - 1, 1); });
                         },
@@ -498,15 +498,15 @@ class _DayPickerDialogState extends State<_DayPickerDialog> {
                         children: [
                           const Icon(Icons.calendar_today, size: 14, color: Colors.black87),
                           const SizedBox(width: 6),
-                          Text('${_months[_displayMonth.month - 1]}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          const Icon(Icons.arrow_drop_down, size: 16),
+                          Text('${_months[_displayMonth.month - 1]}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const Icon(Icons.arrow_drop_down, size: 16, color: Colors.black87),
                           const SizedBox(width: 8),
-                          Text('${_displayMonth.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          const Icon(Icons.arrow_drop_down, size: 16),
+                          Text('${_displayMonth.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const Icon(Icons.arrow_drop_down, size: 16, color: Colors.black87),
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 20),
+                        icon: const Icon(Icons.chevron_right, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() { _displayMonth = DateTime(_displayMonth.year, _displayMonth.month + 1, 1); });
                         },
@@ -713,7 +713,7 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.chevron_left, size: 20),
+                        icon: const Icon(Icons.chevron_left, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() { _displayMonth = DateTime(_displayMonth.year, _displayMonth.month - 1, 1); });
                         },
@@ -722,15 +722,15 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
                         children: [
                           const Icon(Icons.calendar_today, size: 14, color: Colors.black87),
                           const SizedBox(width: 6),
-                          Text('${_months[_displayMonth.month - 1]}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          const Icon(Icons.arrow_drop_down, size: 16),
+                          Text('${_months[_displayMonth.month - 1]}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const Icon(Icons.arrow_drop_down, size: 16, color: Colors.black87),
                           const SizedBox(width: 8),
-                          Text('${_displayMonth.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
-                          const Icon(Icons.arrow_drop_down, size: 16),
+                          Text('${_displayMonth.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          const Icon(Icons.arrow_drop_down, size: 16, color: Colors.black87),
                         ],
                       ),
                       IconButton(
-                        icon: const Icon(Icons.chevron_right, size: 20),
+                        icon: const Icon(Icons.chevron_right, size: 20, color: Colors.black87),
                         onPressed: () {
                           setState(() { _displayMonth = DateTime(_displayMonth.year, _displayMonth.month + 1, 1); });
                         },
