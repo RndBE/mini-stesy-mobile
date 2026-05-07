@@ -1,4 +1,7 @@
- import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/beranda/screens/beranda_screen.dart';
@@ -7,8 +10,32 @@ import 'features/onboarding/screens/onboarding_screen.dart';
 import 'shared/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-void main() {
+// Handle background messages
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+  print("Handling a background message: ${message.messageId}");
+}
+
+// Local notifications plugin
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  try {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    
+    // Config local notifications
+    const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+    await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+  } catch (e) {
+    print("Firebase init failed: $e");
+    // Ignore error so app can still run if google-services.json is missing
+  }
+
   runApp(const StesyApp());
 }
 
@@ -56,7 +83,37 @@ class _SplashRouterState extends State<SplashRouter>
     );
     _scaleAnim = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
+    
+    _setupFCM();
     _checkAuth();
+  }
+
+  void _setupFCM() {
+    FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      RemoteNotification? notification = message.notification;
+      AndroidNotification? android = message.notification?.android;
+      if (notification != null && android != null) {
+        flutterLocalNotificationsPlugin.show(
+          notification.hashCode,
+          notification.title,
+          notification.body,
+          const NotificationDetails(
+            android: AndroidNotificationDetails(
+              'high_importance_channel', // id
+              'High Importance Notifications', // title
+              importance: Importance.high,
+              priority: Priority.high,
+            ),
+          ),
+        );
+      }
+    });
   }
 
   Future<void> _checkAuth() async {

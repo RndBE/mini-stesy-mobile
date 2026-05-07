@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../data/auth_repository.dart';
 import '../../../shared/theme/app_theme.dart';
@@ -64,6 +65,16 @@ class _LoginScreenState extends State<LoginScreen>
         password: _passwordCtrl.text,
       );
       if (mounted) {
+        // --- FCM TOKEN REGISTRATION ---
+        try {
+          final fcmToken = await FirebaseMessaging.instance.getToken();
+          if (fcmToken != null) {
+            await _authRepo.registerFcmToken(fcmToken);
+          }
+        } catch (e) {
+          debugPrint("Failed FCM: $e");
+        }
+        
         Navigator.of(context).pushReplacementNamed('/beranda');
       }
     } on DioException catch (e) {

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "571523077436",
+    "project_id": "mini-stesy",
+    "storage_bucket": "mini-stesy.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:571523077436:android:f6248bf89f3ef1d6a9ba39",
+        "android_client_info": {
+          "package_name": "com.beacon.ministesy"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDAIEKyLFGP61jBeT6cS3PhLLbHc5JNo4s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

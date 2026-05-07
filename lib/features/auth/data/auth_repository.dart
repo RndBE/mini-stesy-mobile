@@ -62,4 +62,16 @@ class AuthRepository {
       levelUser: data['level_user'] ?? '',
     );
   }
+
+  /// Registrasi FCM Token ke backend.
+  Future<void> registerFcmToken(String token) async {
+    try {
+      await _dio.post(
+        '/fcm/register', // Asumsikan baseUrl sudah diset ke /api/v1/mobile
+        data: {'fcm_token': token},
+      );
+    } catch (e) {
+      // Abaikan jika gagal
+    }
+  }
 }

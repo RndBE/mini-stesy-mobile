@@ -116,9 +116,9 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
                         setState(() {
                           if (_filteredPoints.isNotEmpty && !_filteredPoints.contains(_selectedPoint)) {
                             _selectedPoint = _filteredPoints.first;
-                          } else if (_filteredPoints.isEmpty) {
-                            _selectedPoint = null;
                           }
+                          // Jika _filteredPoints kosong, kita biarkan _selectedPoint apa adanya
+                          // agar tampilan visualisasi pos tetap terlihat.
                         });
                       },
                     ),
@@ -364,15 +364,28 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
               bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
             ),
           ),
-          child: StreamBuilder(
-            stream: Stream.periodic(const Duration(seconds: 1)),
-            builder: (context, snapshot) {
-              final now = DateTime.now();
+          child: Builder(
+            builder: (context) {
+              final lastTimeStr = _selectedPoint?['last_time'];
+              DateTime? lastTime;
+              if (lastTimeStr != null && lastTimeStr.toString().isNotEmpty) {
+                try {
+                  lastTime = DateTime.parse(lastTimeStr.toString());
+                } catch (_) {}
+              }
+              
+              final dateStr = lastTime != null 
+                  ? DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(lastTime)
+                  : '-';
+              final timeStr = lastTime != null 
+                  ? DateFormat('HH:mm:ss').format(lastTime)
+                  : '-';
+
               return Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    DateFormat('EEEE, dd MMMM yyyy', 'id_ID').format(now),
+                    dateStr,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -380,7 +393,7 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
                     ),
                   ),
                   Text(
-                    DateFormat('HH:mm:ss').format(now),
+                    timeStr,
                     style: const TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
@@ -508,48 +521,65 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
   }
 
   Widget _buildSkeletonLoading() {
-    return Shimmer.fromColors(
-      baseColor: Colors.grey.shade300,
-      highlightColor: Colors.grey.shade100,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Skeleton Chips
-          Container(
-            height: 50,
-            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
-            child: Row(
-              children: List.generate(4, (index) => Container(
-                width: 100,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              )),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Skeleton Chips dengan background biru
+        Container(
+          height: 50,
+          color: const Color(0xFF1E3A8A), // Background biru gelap dari header dilanjutkan
+          child: Shimmer.fromColors(
+            baseColor: Colors.white.withOpacity(0.3),
+            highlightColor: Colors.white.withOpacity(0.6),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.only(left: 20, right: 20, bottom: 12),
+              physics: const NeverScrollableScrollPhysics(), // Biar nggak bisa di-scroll saat loading
+              child: Row(
+                children: List.generate(4, (index) => Container(
+                  width: 100,
+                  margin: const EdgeInsets.only(right: 12),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                )),
+              ),
             ),
           ),
-          // Skeleton Date & Time
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        ),
+        // Sisa layar dengan background default putih/abu
+        Expanded(
+          child: Shimmer.fromColors(
+            baseColor: Colors.grey.shade300,
+            highlightColor: Colors.grey.shade100,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(width: 150, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
-                Container(width: 60, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                // Skeleton Date & Time
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(width: 150, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                      Container(width: 60, height: 16, decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(4))),
+                    ],
+                  ),
+                ),
+                // Skeleton Body Card
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                    child: _buildSkeletonVisualization(widget.kategori.toUpperCase()),
+                  ),
+                ),
               ],
             ),
           ),
-          // Skeleton Body Card
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-              child: _buildSkeletonVisualization(widget.kategori.toUpperCase()),
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 

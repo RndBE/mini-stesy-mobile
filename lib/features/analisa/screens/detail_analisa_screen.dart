@@ -21,12 +21,16 @@ class DetailAnalisaScreen extends StatefulWidget {
   final String idLogger;
   final String parameterName;
   final bool isOnline;
+  final String? namaPos;
+  final String? namaLogger;
 
   const DetailAnalisaScreen({
     super.key,
     required this.idLogger,
     required this.parameterName,
     required this.isOnline,
+    this.namaPos,
+    this.namaLogger,
   });
 
   @override
@@ -78,6 +82,19 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
 
     try {
       final StringBuffer csv = StringBuffer();
+      
+      // Header Informasi Pos & Logger
+      csv.writeln('INFORMASI DATA LOGGER');
+      if (widget.namaPos != null && widget.namaPos!.isNotEmpty) {
+        csv.writeln('Nama Pos,"${widget.namaPos}"');
+      }
+      if (widget.namaLogger != null && widget.namaLogger!.isNotEmpty) {
+        csv.writeln('Nama Logger,"${widget.namaLogger}"');
+      }
+      csv.writeln('ID Logger,"${widget.idLogger}"');
+      csv.writeln('Parameter,"${_formatParamName(_currentParameterName)}"');
+      csv.writeln(''); // baris kosong sebagai pemisah
+
       csv.writeln('Waktu,Minimum,Maksimum,Rerata');
       
       for (var row in _tableData) {

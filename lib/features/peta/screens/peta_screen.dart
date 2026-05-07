@@ -25,6 +25,7 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
   bool _isSearching = false;
   bool _isFilterOpen = false;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   
   Set<String> _selectedCategories = {};
   List<String> _availableCategories = [];
@@ -48,6 +49,13 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
     }
     
     return filtered;
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    super.dispose();
   }
 
   @override
@@ -375,6 +383,7 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
                             Expanded(
                               child: TextField(
                                 controller: _searchController,
+                                focusNode: _searchFocusNode,
                                 autofocus: true,
                                 style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                                 cursorColor: Colors.white,
@@ -433,6 +442,10 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
                               onTap: () {
                                 setState(() {
                                   _isSearching = true;
+                                });
+                                // Request focus to ensure keyboard pops up immediately
+                                Future.delayed(const Duration(milliseconds: 100), () {
+                                  _searchFocusNode.requestFocus();
                                 });
                               },
                               child: const Icon(Icons.search, color: Colors.white, size: 22),
@@ -860,6 +873,8 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
       MaterialPageRoute(
         builder: (_) => DetailAnalisaScreen(
           idLogger: idLogger,
+          namaPos: p['nama_lokasi']?.toString() ?? p['nama']?.toString(),
+          namaLogger: p['nama_logger']?.toString(),
           parameterName: '', // Kosong agar otomatis memilih parameter pertama di layar detail
           isOnline: isOnline,
         ),

@@ -7,12 +7,16 @@ class AwrVisualizationWidget extends StatefulWidget {
   final String idLogger;
   final Map<String, dynamic> sensorData;
   final bool isOnline;
+  final String? namaPos;
+  final String? namaLogger;
 
   const AwrVisualizationWidget({
     super.key,
     required this.idLogger,
     required this.sensorData,
     required this.isOnline,
+    this.namaPos,
+    this.namaLogger,
   });
 
   @override
@@ -84,6 +88,8 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: widget.idLogger,
+              namaPos: widget.namaPos,
+              namaLogger: widget.namaLogger,
               parameterName: parameterName,
               isOnline: widget.isOnline,
             ),
@@ -456,6 +462,8 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: widget.idLogger,
+              namaPos: widget.namaPos,
+              namaLogger: widget.namaLogger,
               parameterName: parameterName,
               isOnline: widget.isOnline,
             ),

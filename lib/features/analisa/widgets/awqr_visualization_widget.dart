@@ -6,12 +6,16 @@ class AwqrVisualizationWidget extends StatelessWidget {
   final String idLogger;
   final Map<String, dynamic> sensorData;
   final bool isOnline;
+  final String? namaPos;
+  final String? namaLogger;
 
   const AwqrVisualizationWidget({
     super.key,
     required this.idLogger,
     required this.sensorData,
     required this.isOnline,
+    this.namaPos,
+    this.namaLogger,
   });
 
   @override
@@ -109,6 +113,8 @@ class AwqrVisualizationWidget extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: idLogger,
+              namaPos: namaPos,
+              namaLogger: namaLogger,
               parameterName: parameterName,
               isOnline: isOnline,
             ),
@@ -196,6 +202,8 @@ class AwqrVisualizationWidget extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: idLogger,
+              namaPos: namaPos,
+              namaLogger: namaLogger,
               parameterName: parameterName,
               isOnline: isOnline,
             ),

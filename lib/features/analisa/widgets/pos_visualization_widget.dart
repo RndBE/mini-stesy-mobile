@@ -110,6 +110,8 @@ class PosVisualizationWidget extends StatelessWidget {
                     MaterialPageRoute(
                       builder: (_) => DetailAnalisaScreen(
                         idLogger: idLogger,
+                        namaPos: point['nama']?.toString(),
+                        namaLogger: point['nama_logger']?.toString(),
                         parameterName: paramName,
                         isOnline: isOnline,
                       ),
@@ -152,6 +154,8 @@ class PosVisualizationWidget extends StatelessWidget {
         idLogger: point['id_logger'].toString(),
         sensorData: sensorData,
         isOnline: isOnline,
+        namaPos: point['nama']?.toString(),
+        namaLogger: point['nama_logger']?.toString(),
       );
     }
 
@@ -161,6 +165,8 @@ class PosVisualizationWidget extends StatelessWidget {
         idLogger: idLogger,
         sensorData: sensorData,
         isOnline: isOnline,
+        namaPos: point['nama']?.toString(),
+        namaLogger: point['nama_logger']?.toString(),
       );
     }
 
@@ -416,6 +422,8 @@ class PosVisualizationWidget extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: idLogger,
+              namaPos: point['nama']?.toString(),
+              namaLogger: point['nama_logger']?.toString(),
               parameterName: parameterName,
               isOnline: isOnline,
             ),
@@ -453,6 +461,8 @@ class PosVisualizationWidget extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: idLogger,
+              namaPos: point['nama']?.toString(),
+              namaLogger: point['nama_logger']?.toString(),
               parameterName: parameterName,
               isOnline: isOnline,
             ),
@@ -589,6 +599,8 @@ class PosVisualizationWidget extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: idLogger,
+              namaPos: point['nama']?.toString(),
+              namaLogger: point['nama_logger']?.toString(),
               parameterName: 'muka_air_tanah',
               isOnline: isOnline,
             ),
@@ -676,6 +688,8 @@ class PosVisualizationWidget extends StatelessWidget {
           MaterialPageRoute(
             builder: (_) => DetailAnalisaScreen(
               idLogger: idLogger,
+              namaPos: point['nama']?.toString(),
+              namaLogger: point['nama_logger']?.toString(),
               parameterName: parameterName,
               isOnline: isOnline,
             ),
