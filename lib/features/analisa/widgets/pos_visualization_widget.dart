@@ -124,7 +124,7 @@ class PosVisualizationWidget extends StatelessWidget {
         );
       }
 
-      // Non-JIAT (Sungai)
+    // AWLR (Non-JIAT)
       return _buildRiverCard(context, idLogger, sensorData, nonjiatData, isOnline, 'assets/images/sungai/tiang_tanah.svg');
     }
 
@@ -138,12 +138,24 @@ class PosVisualizationWidget extends StatelessWidget {
       final hujanPerJam = (sensorData['curah_hujan_per_jam'] as num?)?.toDouble() ?? 
                           (sensorData['curah_hujan'] as num?)?.toDouble() ?? 0.0;
       final hujanHarian = (sensorData['curah_hujan_harian'] as num?)?.toDouble() ?? 0.0;
+      final paramsList = _getParamsList();
+      // Exclude rain params since already shown in rainfall cards
+      final otherParams = paramsList.where((p) {
+        final utama = (p['parameter_utama'] ?? '').toString().toLowerCase();
+        final nama = (p['nama'] ?? '').toString().toLowerCase();
+        return !utama.contains('hujan') && !utama.contains('rain') && !utama.contains('curah') &&
+               !nama.contains('hujan') && !nama.contains('rain') && !nama.contains('curah');
+      }).toList();
       
       return Column(
         children: [
           _buildRainfallCard('AKUMULASI HARIAN', hujanHarian, isOnline),
           const SizedBox(height: 12),
           _buildRainfallCard('AKUMULASI 1 JAM', hujanPerJam, isOnline),
+          if (otherParams.isNotEmpty) ...[  
+            const SizedBox(height: 12),
+            _buildDynamicParamGrid(context, point['id_logger'].toString(), otherParams, isOnline),
+          ],
         ],
       );
     }
@@ -201,46 +213,12 @@ class PosVisualizationWidget extends StatelessWidget {
     final tma = (sensorData['tma'] as num?)?.toDouble();
     final elevMin = (nonjiatData?['elevasi_min'] as num?)?.toDouble();
     final elevMax = (nonjiatData?['elevasi_max'] as num?)?.toDouble();
-    
-    final debit = (sensorData['debit'] as num?)?.toDouble();
-    final luasPenampang = (sensorData['luas_penampang'] as num?)?.toDouble() ?? (sensorData['luas_penampang_basah'] as num?)?.toDouble();
-    final kecepatanAliran = (sensorData['kecepatan_aliran'] as num?)?.toDouble() ?? (sensorData['flow_velocity'] as num?)?.toDouble();
     final elevSensor = (sensorData['elevasi_sensor'] as num?)?.toDouble();
-    final jarakSensor = (sensorData['jarak_sensor'] as num?)?.toDouble();
-    
-    List<Widget> gridItems = [];
-    
-    if (isAFMR) {
-      if (luasPenampang != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'luas_penampang', 'LUAS PENAMPANG BASAH', luasPenampang, 'm²', isOnline, assetPath: 'assets/images/afmr/luas_penampang_air.svg'));
-      if (debit != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg'));
-      if (kecepatanAliran != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'flow_velocity', 'FLOW VELOCITY', kecepatanAliran, 'm/s', isOnline, assetPath: 'assets/images/afmr/flow_velocity.svg'));
-      if (tma != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'tma', 'ELEVASI MUKA AIR', tma, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg'));
-      if (elevSensor != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'elevasi_sensor', 'ELEVASI SENSOR', elevSensor, 'm', isOnline, assetPath: 'assets/images/afmr/elevasi_sensor.svg'));
-      if (jarakSensor != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'jarak_sensor', 'JARAK SENSOR', jarakSensor, 'm', isOnline, assetPath: 'assets/images/afmr/jarak_sensor.svg'));
-    } else {
-      if (tma != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'tma', 'TINGGI MUKA AIR', tma, 'm', isOnline, assetPath: 'assets/images/awlr/elevasi_muka_air.svg'));
-      if (debit != null) gridItems.add(_buildSungaiCardItem(context, idLogger, 'debit', 'DEBIT', debit, 'm³/s', isOnline, assetPath: 'assets/images/awlr/debit.svg'));
-    }
 
-    List<Widget> gridRows = [];
-    for (int i = 0; i < gridItems.length; i += 2) {
-      gridRows.add(
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8.0),
-          child: Row(
-            children: [
-              Expanded(child: gridItems[i]),
-              const SizedBox(width: 8),
-              if (i + 1 < gridItems.length)
-                Expanded(child: gridItems[i + 1])
-              else
-                Expanded(child: const SizedBox()),
-            ],
-          ),
-        ),
-      );
-    }
-    
+    // Use dynamic params from API
+    final paramsList = _getParamsList();
+    final dynamicGrid = _buildDynamicParamGrid(context, idLogger, paramsList, isOnline);
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -265,11 +243,106 @@ class PosVisualizationWidget extends StatelessWidget {
             isOnline: isOnline,
             tiangAsset: tiangAsset,
           ),
-          if (tma != null && gridRows.isNotEmpty) const SizedBox(height: 12),
-          ...gridRows,
+          if (paramsList.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            dynamicGrid,
+          ],
         ],
       ),
     );
+  }
+
+
+
+
+  List<Map<String, dynamic>> _getParamsList() {
+    final raw = point['parameters_list'];
+    if (raw == null || raw is! List) return [];
+    return raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+  }
+
+  Widget _buildDynamicParamGrid(BuildContext context, String idLogger, List<Map<String, dynamic>> params, bool isOnline) {
+    final items = params.where((p) => p['nilai'] != null).map((p) {
+      final nama = p['nama']?.toString() ?? '';
+      final satuan = p['satuan']?.toString() ?? _inferUnit(p['parameter_utama']?.toString() ?? '', p['key']?.toString() ?? '');
+      final nilai = (p['nilai'] as num?)?.toDouble() ?? 0.0;
+      final key = p['key']?.toString() ?? '';
+      final paramUtama = p['parameter_utama']?.toString() ?? '';
+      final iconPath = _getParamIconPath(paramUtama, nama.toLowerCase());
+      final icon = _getParamIcon(paramUtama, nama.toLowerCase());
+      final color = _getParamColor(paramUtama, nama.toLowerCase());
+      if (iconPath != null) {
+        return _buildSungaiCardItem(context, idLogger, key, nama.toUpperCase(), nilai, satuan, isOnline, assetPath: iconPath);
+      }
+      return _buildSungaiCardItem(context, idLogger, key, nama.toUpperCase(), nilai, satuan, isOnline, icon: icon, color: color);
+    }).toList();
+
+    if (items.isEmpty) return const SizedBox.shrink();
+    List<Widget> rows = [];
+    for (int i = 0; i < items.length; i += 2) {
+      rows.add(Padding(
+        padding: const EdgeInsets.only(bottom: 8.0),
+        child: Row(children: [
+          Expanded(child: items[i]),
+          const SizedBox(width: 8),
+          i + 1 < items.length ? Expanded(child: items[i + 1]) : const Expanded(child: SizedBox()),
+        ]),
+      ));
+    }
+    return Column(children: rows);
+  }
+
+  String? _getParamIconPath(String u, String n) {
+    final k = '$u $n';
+    if (k.contains('tma') || k.contains('muka_air') || k.contains('tinggi_muka')) return 'assets/images/awlr/elevasi_muka_air.svg';
+    if (k.contains('debit')) return 'assets/images/awlr/debit.svg';
+    if (k.contains('luas_penampang') || k.contains('penampang')) return 'assets/images/afmr/luas_penampang_air.svg';
+    if (k.contains('flow_velocity') || k.contains('velocity')) return 'assets/images/afmr/flow_velocity.svg';
+    if (k.contains('elevasi_sensor')) return 'assets/images/afmr/elevasi_sensor.svg';
+    if (k.contains('jarak_sensor')) return 'assets/images/afmr/jarak_sensor.svg';
+    if (k.contains('elevasi')) return 'assets/images/awlr/elevasi_muka_air.svg';
+    return null;
+  }
+
+  IconData _getParamIcon(String u, String n) {
+    final k = '$u $n';
+    if (k.contains('hujan') || k.contains('rain') || k.contains('curah')) return Icons.water_drop;
+    if (k.contains('suhu') || k.contains('temperature') || k.contains('temp')) return Icons.thermostat;
+    if (k.contains('kelembaban') || k.contains('humidity')) return Icons.opacity;
+    if (k.contains('angin') || k.contains('wind')) return Icons.air;
+    if (k.contains('tekanan') || k.contains('pressure')) return Icons.compress;
+    if (k.contains('cahaya') || k.contains('light')) return Icons.wb_sunny;
+    if (k.contains('ph')) return Icons.science;
+    if (k.contains('turb') || k.contains('kekeruhan')) return Icons.blur_on;
+    if (k.contains('conduct') || k.contains('konduktivitas')) return Icons.electric_bolt;
+    if (k.contains('salin')) return Icons.waves;
+    if (k.contains('tds')) return Icons.water;
+    return Icons.sensors;
+  }
+
+  Color _getParamColor(String u, String n) {
+    final k = '$u $n';
+    if (k.contains('hujan') || k.contains('rain')) return Colors.blue;
+    if (k.contains('suhu') || k.contains('temp')) return Colors.orange;
+    if (k.contains('kelembaban') || k.contains('humidity')) return Colors.lightBlue;
+    if (k.contains('angin') || k.contains('wind')) return Colors.teal;
+    if (k.contains('tekanan') || k.contains('pressure')) return Colors.purple;
+    if (k.contains('cahaya') || k.contains('light')) return Colors.amber;
+    if (k.contains('ph')) return Colors.green;
+    return Colors.blueGrey;
+  }
+
+  String _inferUnit(String u, String k) {
+    final s = '$u $k';
+    if (s.contains('tma') || s.contains('muka_air') || s.contains('elevasi') || s.contains('jarak')) return 'm';
+    if (s.contains('debit')) return 'm³/s';
+    if (s.contains('hujan') || s.contains('rain') || s.contains('curah')) return 'mm';
+    if (s.contains('suhu') || s.contains('temperature')) return '°C';
+    if (s.contains('kelembaban') || s.contains('humidity')) return '%';
+    if (s.contains('angin') || s.contains('wind') || s.contains('velocity') || s.contains('flow')) return 'm/s';
+    if (s.contains('tekanan') || s.contains('pressure')) return 'hPa';
+    if (s.contains('luas') || s.contains('penampang')) return 'm²';
+    return '';
   }
 
   Widget _buildRainfallCard(String title, double hujan, bool isOnline) {

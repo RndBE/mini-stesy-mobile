@@ -1047,34 +1047,46 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                 child: SingleChildScrollView(
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
-                    children: _availableParams.map((param) {
-                      final paramName = param['nama_parameter']?.toString() ?? 'Unknown';
-                      final isSelected = paramName == _currentParameterName;
-                      return ListTile(
-                        dense: true,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
-                        title: Text(
-                          _formatParamName(paramName),
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: const Color(0xFF1E293B),
-                          ),
-                        ),
-                        trailing: isSelected 
-                            ? const Icon(Icons.radio_button_checked, color: Colors.black, size: 20)
-                            : const Icon(Icons.radio_button_off, color: Colors.black54, size: 20),
-                        onTap: () {
-                          Navigator.pop(context);
-                          if (!isSelected) {
-                            setState(() {
-                              _currentParameterName = paramName;
-                            });
-                            _fetchData();
-                          }
-                        },
-                      );
-                    }).toList(),
+                    children: (() {
+                        // Urutkan berdasarkan nomor sensor (sensor1, sensor2, dst)
+                        final sorted = [..._availableParams];
+                        sorted.sort((a, b) {
+                          final kolA = a['kolom_sensor']?.toString() ?? '';
+                          final kolB = b['kolom_sensor']?.toString() ?? '';
+                          final numA = int.tryParse(kolA.replaceAll(RegExp(r'[^0-9]'), '')) ?? 9999;
+                          final numB = int.tryParse(kolB.replaceAll(RegExp(r'[^0-9]'), '')) ?? 9999;
+                          return numA.compareTo(numB);
+                        });
+                        return sorted.map((param) {
+                          final paramName = param['nama_parameter']?.toString() ?? 'Unknown';
+                          final isSelected = paramName == _currentParameterName;
+                          return ListTile(
+                            dense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 0),
+                            title: Text(
+                              _formatParamName(paramName),
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                            trailing: isSelected 
+                                ? const Icon(Icons.radio_button_checked, color: Colors.black, size: 20)
+                                : const Icon(Icons.radio_button_off, color: Colors.black54, size: 20),
+                            onTap: () {
+                              Navigator.pop(context);
+                              if (!isSelected) {
+                                setState(() {
+                                  _currentParameterName = paramName;
+                                });
+                                _fetchData();
+                              }
+                            },
+                          );
+                        }).toList();
+                      })(),
+
                   ),
                 ),
               ),
