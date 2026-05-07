@@ -273,9 +273,9 @@ class PosVisualizationWidget extends StatelessWidget {
   }
 
   Widget _buildRainfallCard(String title, double hujan, bool isOnline) {
-    if (!isOnline) {
-      hujan = 0.0;
-    }
+    // if (!isOnline) {
+    //   hujan = 0.0;
+    // }
 
     String imagePath = 'assets/images/klasifikasi_hujan/';
     String labelKlasifikasi = '';
@@ -340,7 +340,7 @@ class PosVisualizationWidget extends StatelessWidget {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      isOnline ? hujan.toStringAsFixed(3) : '0.00', 
+                      hujan.toStringAsFixed(2), 
                       style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: isOnline ? Colors.black : Colors.grey)
                     ),
                     const SizedBox(width: 4),
