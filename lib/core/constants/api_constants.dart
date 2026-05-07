@@ -8,6 +8,7 @@ class ApiEndpoints {
   static const String login  = '$kApiPrefix/auth/login';
   static const String logout = '$kApiPrefix/auth/logout'; 
   static const String me     = '$kApiPrefix/auth/me';
+  static const String fcmRegister = '$kApiPrefix/fcm/register';
 
   // ── Beranda ─────────────────────────────────────────
   static const String berandaInfo = '$kApiPrefix/beranda/info';

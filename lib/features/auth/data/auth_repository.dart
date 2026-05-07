@@ -67,11 +67,14 @@ class AuthRepository {
   Future<void> registerFcmToken(String token) async {
     try {
       await _dio.post(
-        '/fcm/register', // Asumsikan baseUrl sudah diset ke /api/v1/mobile
+        ApiEndpoints.fcmRegister,
         data: {'fcm_token': token},
       );
     } catch (e) {
-      // Abaikan jika gagal
+      if (e is DioException) {
+        print("API Error: ${e.response?.statusCode} - ${e.response?.data}");
+      }
+      print("Failed to register FCM Token: $e");
     }
   }
 }

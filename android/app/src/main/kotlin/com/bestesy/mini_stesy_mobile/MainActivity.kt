@@ -1,4 +1,4 @@
-package com.bestesy.mini_stesy_mobile
+package com.beacon.ministesy
 
 import io.flutter.embedding.android.FlutterActivity
 

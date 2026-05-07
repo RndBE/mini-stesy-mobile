@@ -67,11 +67,15 @@ class _LoginScreenState extends State<LoginScreen>
       if (mounted) {
         // --- FCM TOKEN REGISTRATION ---
         try {
+          print("=== MINTA TOKEN KE FIREBASE ===");
           final fcmToken = await FirebaseMessaging.instance.getToken();
+          print("=== DAPAT TOKEN FIREBASE: $fcmToken ===");
           if (fcmToken != null) {
             await _authRepo.registerFcmToken(fcmToken);
+            print("=== SELESAI KIRIM TOKEN KE BACKEND ===");
           }
         } catch (e) {
+          print("=== GAGAL DAPAT TOKEN FIREBASE: $e ===");
           debugPrint("Failed FCM: $e");
         }
         

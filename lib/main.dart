@@ -20,6 +20,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 // Local notifications plugin
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 
+const AndroidNotificationChannel highImportanceChannel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'High Importance Notifications',
+  importance: Importance.high,
+);
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
@@ -31,6 +37,15 @@ Future<void> main() async {
     const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
     const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
     await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.createNotificationChannel(highImportanceChannel);
+
+    await flutterLocalNotificationsPlugin
+        .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+        ?.requestNotificationsPermission();
+
   } catch (e) {
     print("Firebase init failed: $e");
     // Ignore error so app can still run if google-services.json is missing
@@ -88,21 +103,47 @@ class _SplashRouterState extends State<SplashRouter>
     _checkAuth();
   }
 
-  void _setupFCM() {
-    FirebaseMessaging.instance.requestPermission(
+  Future<void> _setupFCM() async {
+    final settings = await FirebaseMessaging.instance.requestPermission(
+      alert: true,
+      badge: true,
+      sound: true,
+    );
+
+    print("FCM permission status: ${settings.authorizationStatus}");
+
+    final fcmToken = await FirebaseMessaging.instance.getToken();
+    print("FCM current token: $fcmToken");
+    if (fcmToken != null) {
+      await AuthRepository().registerFcmToken(fcmToken);
+    }
+
+    FirebaseMessaging.instance.onTokenRefresh.listen((token) async {
+      print("FCM refreshed token: $token");
+      await AuthRepository().registerFcmToken(token);
+    });
+
+    await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
       alert: true,
       badge: true,
       sound: true,
     );
 
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print("=== TERIMA PESAN FCM DI FOREGROUND! ===");
+      print("Title: ${message.notification?.title}");
+      print("Body: ${message.notification?.body}");
+      print("Data: ${message.data}");
+      
       RemoteNotification? notification = message.notification;
-      AndroidNotification? android = message.notification?.android;
-      if (notification != null && android != null) {
+      final title = notification?.title ?? message.data['title'] ?? message.data['judul'];
+      final body = notification?.body ?? message.data['body'] ?? message.data['message'] ?? message.data['pesan'];
+
+      if (title != null || body != null) {
         flutterLocalNotificationsPlugin.show(
-          id: notification.hashCode,
-          title: notification.title,
-          body: notification.body,
+          id: message.messageId?.hashCode ?? DateTime.now().millisecondsSinceEpoch ~/ 1000,
+          title: title,
+          body: body,
           notificationDetails: const NotificationDetails(
             android: AndroidNotificationDetails(
               'high_importance_channel', // id
