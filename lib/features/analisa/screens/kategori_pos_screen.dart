@@ -4,6 +4,7 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:shimmer/shimmer.dart';
 import '../../peta/data/peta_repository.dart';
 import '../widgets/pos_visualization_widget.dart';
+import '../widgets/offline_bottom_sheet.dart';
 import 'dokumentasi_pos_screen.dart';
 
 class KategoriPosScreen extends StatefulWidget {
@@ -72,10 +73,72 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+        String errorText = e.toString();
+        String displayError = errorText;
+        bool isNetworkError = false;
+
+        if (errorText.contains('SocketException') || 
+            errorText.contains('connection error') || 
+            errorText.contains('Failed host lookup')) {
+          isNetworkError = true;
+          displayError = 'Tidak ada koneksi internet. Silakan periksa jaringan Anda dan pastikan perangkat terhubung.';
+        } else {
+          displayError = errorText.replaceAll('Exception: ', '');
+        }
+
+        // Jika masalah jaringan, gunakan bottom sheet pintar
+        // Jika error server biasa, gunakan bottom sheet manual
+        if (isNetworkError) {
+          showOfflineBottomSheet(context, () {
+            setState(() { _isLoading = true; });
+            _fetchData();
+          });
+        } else {
+          setState(() { _isLoading = false; });
+          showModalBottomSheet(
+            context: context,
+            isDismissible: false,
+            enableDrag: false,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (context) {
+              return SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 48),
+                      const SizedBox(height: 16),
+                      const Text('Gagal Memuat Data', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(displayError, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E3A8A),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() { _isLoading = true; });
+                            _fetchData();
+                          },
+                          child: const Text('Coba Lagi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      ),
+                      const SizedBox(height: 8), // Extra space
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
       }
     }
   }
@@ -230,29 +293,6 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
   Widget _buildBody() {
     if (_isLoading) {
       return _buildSkeletonLoading();
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Gagal memuat data:\n$_errorMessage', 
-                 textAlign: TextAlign.center,
-                 style: TextStyle(color: Colors.grey.shade600)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                setState(() { _isLoading = true; _errorMessage = null; });
-                _fetchData();
-              },
-              child: const Text('Coba Lagi'),
-            ),
-          ],
-        ),
-      );
     }
 
     if (_points.isEmpty) {

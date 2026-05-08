@@ -8,6 +8,7 @@ import 'package:shimmer/shimmer.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import '../data/analisa_repository.dart';
 import '../widgets/custom_date_pickers.dart';
+import '../widgets/offline_bottom_sheet.dart';
 
 class ChartData {
   ChartData(this.time, this.min, this.maks, this.rerata);
@@ -192,10 +193,72 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _errorMessage = e.toString();
-          _isLoading = false;
-        });
+        String errorText = e.toString();
+        String displayError = errorText;
+        bool isNetworkError = false;
+
+        if (errorText.contains('SocketException') || 
+            errorText.contains('connection error') || 
+            errorText.contains('Failed host lookup')) {
+          isNetworkError = true;
+          displayError = 'Tidak ada koneksi internet. Silakan periksa jaringan Anda dan pastikan perangkat terhubung.';
+        } else {
+          displayError = errorText.replaceAll('Exception: ', '');
+        }
+
+        // Jika masalah jaringan, gunakan bottom sheet pintar
+        // Jika error server biasa, gunakan bottom sheet manual
+        if (isNetworkError) {
+          showOfflineBottomSheet(context, () {
+            setState(() { _isLoading = true; });
+            _fetchData();
+          });
+        } else {
+          setState(() { _isLoading = false; });
+          showModalBottomSheet(
+            context: context,
+            isDismissible: false,
+            enableDrag: false,
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            builder: (context) {
+              return SafeArea(
+                child: Container(
+                  padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.error_outline_rounded, color: Colors.orange, size: 48),
+                      const SizedBox(height: 16),
+                      const Text('Gagal Memuat Data', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Text(displayError, textAlign: TextAlign.center, style: const TextStyle(fontSize: 14, color: Colors.black87)),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF1E3A8A),
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                          ),
+                          onPressed: () {
+                            Navigator.pop(context);
+                            setState(() { _isLoading = true; });
+                            _fetchData();
+                          },
+                          child: const Text('Coba Lagi', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                        ),
+                      ),
+                      const SizedBox(height: 8), // Extra space
+                    ],
+                  ),
+                ),
+              );
+            },
+          );
+        }
       }
     }
   }
@@ -339,25 +402,6 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           
           if (_isLoading)
             _buildSkeletonContentOnly()
-          else if (_errorMessage != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 48),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
-                  const SizedBox(height: 16),
-                  Text('Gagal memuat data:\n$_errorMessage', 
-                       textAlign: TextAlign.center,
-                       style: TextStyle(color: Colors.grey.shade600)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: _fetchData,
-                    child: const Text('Coba Lagi'),
-                  ),
-                ],
-              ),
-            )
           else ...[
             // Segmented Buttons (Hari, Bulan, Tahun, Rentang)
             _buildSegmentedButtons(),
@@ -1098,11 +1142,14 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
     String? assetPath;
     IconData? iconData;
 
-    String resolveName = _displayName ?? _currentParameterName;
+    String resolveName = (_displayName ?? _currentParameterName)
+        .toLowerCase()
+        .replaceAll(' ', '_');
 
-    switch (resolveName.toLowerCase()) {
+    switch (resolveName) {
       case 'tma':
       case 'elevasi_muka_air':
+      case 'tinggi_muka_air':
         assetPath = 'assets/images/awlr/elevasi_muka_air.svg';
         break;
       case 'debit':

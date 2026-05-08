@@ -12,7 +12,7 @@ class DokumentasiPosScreen extends StatefulWidget {
 class _DokumentasiPosScreenState extends State<DokumentasiPosScreen> {
   int _currentIndex = 0;
   List<String> _fotos = [];
-
+  final PageController _pageController = PageController();
   @override
   void initState() {
     super.initState();
@@ -20,6 +20,12 @@ class _DokumentasiPosScreenState extends State<DokumentasiPosScreen> {
     if (widget.point['dokumentasi'] != null) {
       _fotos = List<String>.from(widget.point['dokumentasi']);
     }
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
@@ -59,47 +65,99 @@ class _DokumentasiPosScreenState extends State<DokumentasiPosScreen> {
           : Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Carousel View (PageView)
+                // Carousel View (PageView) with Arrows
                 SizedBox(
                   height: 300, // Tinggi galeri foto
-                  child: PageView.builder(
-                    itemCount: _fotos.length,
-                    onPageChanged: (index) {
-                      setState(() {
-                        _currentIndex = index;
-                      });
-                    },
-                    itemBuilder: (context, index) {
-                      return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                        child: ClipRRect(
-                          borderRadius: BorderRadius.circular(12),
-                          child: Image.network(
-                            _fotos[index],
-                            fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) {
-                              return Container(
-                                color: Colors.grey.shade200,
-                                child: const Center(
-                                  child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      PageView.builder(
+                        controller: _pageController,
+                        itemCount: _fotos.length,
+                        onPageChanged: (index) {
+                          setState(() {
+                            _currentIndex = index;
+                          });
+                        },
+                        itemBuilder: (context, index) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(12),
+                              child: InteractiveViewer(
+                                minScale: 1.0,
+                                maxScale: 4.0,
+                                child: Image.network(
+                                  _fotos[index],
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) {
+                                    return Container(
+                                      color: Colors.grey.shade200,
+                                      child: const Center(
+                                        child: Icon(Icons.broken_image, color: Colors.grey, size: 50),
+                                      ),
+                                    );
+                                  },
+                                  loadingBuilder: (context, child, loadingProgress) {
+                                    if (loadingProgress == null) return child;
+                                    return Center(
+                                      child: CircularProgressIndicator(
+                                        value: loadingProgress.expectedTotalBytes != null
+                                            ? loadingProgress.cumulativeBytesLoaded /
+                                                (loadingProgress.expectedTotalBytes ?? 1)
+                                            : null,
+                                      ),
+                                    );
+                                  },
                                 ),
-                              );
-                            },
-                            loadingBuilder: (context, child, loadingProgress) {
-                              if (loadingProgress == null) return child;
-                              return Center(
-                                child: CircularProgressIndicator(
-                                  value: loadingProgress.expectedTotalBytes != null
-                                      ? loadingProgress.cumulativeBytesLoaded /
-                                          (loadingProgress.expectedTotalBytes ?? 1)
-                                      : null,
-                                ),
-                              );
-                            },
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                      
+                      // Tombol Kiri
+                      if (_currentIndex > 0)
+                        Positioned(
+                          left: 24,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.chevron_left, color: Colors.white, size: 30),
+                              onPressed: () {
+                                _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                );
+                              },
+                            ),
                           ),
                         ),
-                      );
-                    },
+
+                      // Tombol Kanan
+                      if (_currentIndex < _fotos.length - 1)
+                        Positioned(
+                          right: 24,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.black.withOpacity(0.5),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.chevron_right, color: Colors.white, size: 30),
+                              onPressed: () {
+                                _pageController.nextPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
                 

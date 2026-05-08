@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
@@ -160,6 +161,58 @@ class _SplashRouterState extends State<SplashRouter>
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(milliseconds: 1500));
     if (!mounted) return;
+
+    // Check Internet Connection
+    bool hasInternet = false;
+    try {
+      final result = await InternetAddress.lookup('google.com')
+          .timeout(const Duration(seconds: 5));
+      if (result.isNotEmpty && result[0].rawAddress.isNotEmpty) {
+        hasInternet = true;
+      }
+    } catch (_) {
+      hasInternet = false;
+    }
+
+    if (!hasInternet) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: const Row(
+            children: [
+              Icon(Icons.wifi_off_rounded, color: Colors.red),
+              SizedBox(width: 8),
+              Text(
+                'Tidak Ada Koneksi',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Mohon maaf, aplikasi STESY Mobile memerlukan koneksi internet untuk menarik data terbaru. '
+            'Silakan periksa pengaturan jaringan Anda dan pastikan perangkat terhubung ke internet, lalu coba kembali.',
+            style: TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                // Retry checking
+                _checkAuth();
+              },
+              child: const Text(
+                'Coba Lagi',
+                style: TextStyle(color: Color(0xFF2E3B84), fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+      return; // Stop the flow until they retry
+    }
 
     final prefs = await SharedPreferences.getInstance();
     final isFirstTime = prefs.getBool('isFirstTime') ?? true;

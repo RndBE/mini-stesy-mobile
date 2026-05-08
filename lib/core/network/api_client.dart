@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:dio_smart_retry/dio_smart_retry.dart';
 import '../constants/api_constants.dart';
 import '../storage/secure_storage.dart';
 
@@ -40,6 +41,29 @@ class ApiClient {
             SecureStorage.clearAll();
           }
           return handler.next(e);
+        },
+      ),
+    );
+
+    // ── Interceptor: Smart Retry (Jaringan Putus-Nyambung) ──────────────────
+    dio.interceptors.add(
+      RetryInterceptor(
+        dio: dio,
+        logPrint: print, // Print log ke console saat retry terjadi
+        retries: 3, // Maksimal coba lagi 3 kali
+        retryDelays: const [
+          Duration(seconds: 1), // Tunggu 1 detik sebelum coba ke-1
+          Duration(seconds: 2), // Tunggu 2 detik sebelum coba ke-2
+          Duration(seconds: 3), // Tunggu 3 detik sebelum coba ke-3
+        ],
+        retryEvaluator: (error, attempt) {
+          // Hanya retry jika errornya adalah masalah jaringan/timeout, bukan karena masalah dari server (spt 404, 401)
+          final isNetworkError = error.type == DioExceptionType.connectionTimeout ||
+                                 error.type == DioExceptionType.sendTimeout ||
+                                 error.type == DioExceptionType.receiveTimeout ||
+                                 error.type == DioExceptionType.connectionError ||
+                                 error.type == DioExceptionType.unknown;
+          return isNetworkError;
         },
       ),
     );
