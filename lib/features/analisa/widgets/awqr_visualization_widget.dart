@@ -116,6 +116,7 @@ class AwqrVisualizationWidget extends StatelessWidget {
               namaPos: namaPos,
               namaLogger: namaLogger,
               parameterName: parameterName,
+              initialDisplayName: 'TINGGI MUKA AIR',
               isOnline: isOnline,
             ),
           ),
@@ -136,18 +137,21 @@ class AwqrVisualizationWidget extends StatelessWidget {
           child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SvgPicture.asset(
-            'assets/images/awqr/elevasi_muka_air.svg',
-            width: 36,
-            height: 36,
-            colorFilter: !isOnline
-                ? const ColorFilter.matrix(<double>[
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0, 0, 0, 1, 0,
-                  ])
-                : null,
+          Hero(
+            tag: 'hero-$idLogger-$parameterName',
+            child: SvgPicture.asset(
+              'assets/images/awqr/elevasi_muka_air.svg',
+              width: 36,
+              height: 36,
+              colorFilter: !isOnline
+                  ? const ColorFilter.matrix(<double>[
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0, 0, 0, 1, 0,
+                    ])
+                  : null,
+            ),
           ),
           const SizedBox(width: 16),
           Column(
@@ -205,6 +209,7 @@ class AwqrVisualizationWidget extends StatelessWidget {
               namaPos: namaPos,
               namaLogger: namaLogger,
               parameterName: parameterName,
+              initialDisplayName: label,
               isOnline: isOnline,
             ),
           ),
@@ -224,18 +229,21 @@ class AwqrVisualizationWidget extends StatelessWidget {
           child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          SvgPicture.asset(
-            assetPath,
-            width: 28,
-            height: 28,
-            colorFilter: !isOnline
-                ? const ColorFilter.matrix(<double>[
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0, 0, 0, 1, 0,
-                  ])
-                : null,
+          Hero(
+            tag: 'hero-$idLogger-$parameterName',
+            child: SvgPicture.asset(
+              assetPath,
+              width: 28,
+              height: 28,
+              colorFilter: !isOnline
+                  ? const ColorFilter.matrix(<double>[
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0, 0, 0, 1, 0,
+                    ])
+                  : null,
+            ),
           ),
           const SizedBox(width: 10),
           Expanded(

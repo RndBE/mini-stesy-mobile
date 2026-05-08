@@ -20,6 +20,7 @@ class ChartData {
 class DetailAnalisaScreen extends StatefulWidget {
   final String idLogger;
   final String parameterName;
+  final String? initialDisplayName;
   final bool isOnline;
   final String? namaPos;
   final String? namaLogger;
@@ -28,6 +29,7 @@ class DetailAnalisaScreen extends StatefulWidget {
     super.key,
     required this.idLogger,
     required this.parameterName,
+    this.initialDisplayName,
     required this.isOnline,
     this.namaPos,
     this.namaLogger,
@@ -52,6 +54,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   double _intervalY = 1;
 
   String _currentParameterName = '';
+  String? _displayName;
   List<Map<String, dynamic>> _availableParams = [];
 
   DateTime _selectedDate = DateTime.now();
@@ -63,6 +66,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   void initState() {
     super.initState();
     _currentParameterName = widget.parameterName;
+    _displayName = widget.initialDisplayName;
     _selectedDateRange = DateTimeRange(
       start: DateTime.now().subtract(const Duration(days: 7)),
       end: DateTime.now(),
@@ -178,6 +182,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           column = matchedParam['kolom_sensor'] ?? '';
           _satuan = matchedParam['satuan'] ?? '';
           _currentParameterName = matchedParam['nama_parameter'] ?? _currentParameterName;
+          _displayName = _currentParameterName;
         }
 
         final rawData = response['data'] as List?;
@@ -455,7 +460,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                _formatParamName(_currentParameterName),
+                _formatParamName(_displayName ?? _currentParameterName),
                 style: const TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.bold,
@@ -1093,7 +1098,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
     String? assetPath;
     IconData? iconData;
 
-    switch (_currentParameterName.toLowerCase()) {
+    String resolveName = _displayName ?? _currentParameterName;
+
+    switch (resolveName.toLowerCase()) {
       case 'tma':
       case 'elevasi_muka_air':
         assetPath = 'assets/images/awlr/elevasi_muka_air.svg';

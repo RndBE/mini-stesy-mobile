@@ -91,6 +91,7 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
               namaPos: widget.namaPos,
               namaLogger: widget.namaLogger,
               parameterName: parameterName,
+              initialDisplayName: label,
               isOnline: widget.isOnline,
             ),
           ),
@@ -110,21 +111,24 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          fallbackIcon != null
-              ? Icon(fallbackIcon, size: 28, color: widget.isOnline ? Colors.blueGrey : Colors.grey)
-              : SvgPicture.asset(
-                  iconPath,
-                  width: 28,
-                  height: 28,
-                  colorFilter: !widget.isOnline
-                      ? const ColorFilter.matrix(<double>[
-                          0.2126, 0.7152, 0.0722, 0, 0,
-                          0.2126, 0.7152, 0.0722, 0, 0,
-                          0.2126, 0.7152, 0.0722, 0, 0,
-                          0, 0, 0, 1, 0,
-                        ])
-                      : null,
-                ),
+          Hero(
+            tag: 'hero-${widget.idLogger}-$parameterName',
+            child: fallbackIcon != null
+                ? Icon(fallbackIcon, size: 28, color: widget.isOnline ? Colors.blueGrey : Colors.grey)
+                : SvgPicture.asset(
+                    iconPath,
+                    width: 28,
+                    height: 28,
+                    colorFilter: !widget.isOnline
+                        ? const ColorFilter.matrix(<double>[
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0.2126, 0.7152, 0.0722, 0, 0,
+                            0, 0, 0, 1, 0,
+                          ])
+                        : null,
+                  ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -465,6 +469,7 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
               namaPos: widget.namaPos,
               namaLogger: widget.namaLogger,
               parameterName: parameterName,
+              initialDisplayName: label,
               isOnline: widget.isOnline,
             ),
           ),
@@ -476,21 +481,27 @@ class _AwrVisualizationWidgetState extends State<AwrVisualizationWidget> {
           mainAxisSize: MainAxisSize.min,
           children: [
         if (assetPath != null)
-          SvgPicture.asset(
-            assetPath,
-            width: 28,
-            height: 28,
-            colorFilter: !widget.isOnline
-                ? const ColorFilter.matrix(<double>[
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0.2126, 0.7152, 0.0722, 0, 0,
-                    0, 0, 0, 1, 0,
-                  ])
-                : null,
+          Hero(
+            tag: 'hero-${widget.idLogger}-$parameterName',
+            child: SvgPicture.asset(
+              assetPath,
+              width: 28,
+              height: 28,
+              colorFilter: !widget.isOnline
+                  ? const ColorFilter.matrix(<double>[
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0.2126, 0.7152, 0.0722, 0, 0,
+                      0, 0, 0, 1, 0,
+                    ])
+                  : null,
+            ),
           )
         else if (icon != null && color != null)
-          Icon(icon, size: 28, color: widget.isOnline ? color : Colors.grey),
+          Hero(
+            tag: 'hero-${widget.idLogger}-$parameterName',
+            child: Icon(icon, size: 28, color: widget.isOnline ? color : Colors.grey),
+          ),
         const SizedBox(height: 6),
         Text(
           label,
