@@ -22,7 +22,7 @@ class AnalisaRepository {
         queryParameters: {
           'from': from,
           'to': to,
-          if (parameter != null) 'parameter': parameter,
+          'parameter': ?parameter,
           'per_page': 1000,
           'page': 1,
         },
@@ -55,7 +55,7 @@ class AnalisaRepository {
               queryParameters: {
                 'from': from,
                 'to': to,
-                if (parameter != null) 'parameter': parameter,
+                'parameter': ?parameter,
                 'per_page': 1000,
                 'page': p,
               },

@@ -280,8 +280,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       
       // Hitung interval
       final diff = _maxY - _minY;
-      if (diff <= 5) _intervalY = 1;
-      else if (diff <= 20) _intervalY = 5;
+      if (diff <= 5) {
+        _intervalY = 1;
+      } else if (diff <= 20) _intervalY = 5;
       else if (diff <= 50) _intervalY = 10;
       else if (diff <= 100) _intervalY = 20;
       else _intervalY = diff / 5;
@@ -710,8 +711,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                           ),
                         );
 
-                        if (seriesName == 'Rerata') rerataRow = row;
-                        else if (seriesName == 'Min') minRow = row;
+                        if (seriesName == 'Rerata') {
+                          rerataRow = row;
+                        } else if (seriesName == 'Min') minRow = row;
                         else if (seriesName == 'Maks') maksRow = row;
                       }
                     }

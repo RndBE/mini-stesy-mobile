@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../../shared/theme/app_theme.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/models/user_model.dart';

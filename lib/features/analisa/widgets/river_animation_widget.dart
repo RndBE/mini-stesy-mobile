@@ -57,7 +57,7 @@ class _RiverAnimationWidgetState extends State<RiverAnimationWidget>
           // 1. River Background
           AnimatedBuilder(
             animation: _ctrl,
-            builder: (_, __) => CustomPaint(
+            builder: (_, _) => CustomPaint(
               size: const Size(double.infinity, 250),
               painter: _RiverPainter(
                 animValue: _ctrl.value,
@@ -84,7 +84,7 @@ class _RiverAnimationWidgetState extends State<RiverAnimationWidget>
           // 4. Foreground: TMA Line & Text
           AnimatedBuilder(
             animation: _ctrl,
-            builder: (_, __) => CustomPaint(
+            builder: (_, _) => CustomPaint(
               size: const Size(double.infinity, 250),
               painter: _ForegroundPainter(
                 tma: widget.tma ?? 0,

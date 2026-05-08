@@ -268,8 +268,8 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
                 }
               },
               onPositionChanged: (position, hasGesture) {
-                if (hasGesture && position.zoom != null) {
-                  _currentZoom = position.zoom!;
+                if (hasGesture) {
+                  _currentZoom = position.zoom;
                 }
               },
             ),

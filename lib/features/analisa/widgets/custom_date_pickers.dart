@@ -498,7 +498,7 @@ class _DayPickerDialogState extends State<_DayPickerDialog> {
                         children: [
                           const Icon(Icons.calendar_today, size: 14, color: Colors.black87),
                           const SizedBox(width: 6),
-                          Text('${_months[_displayMonth.month - 1]}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          Text(_months[_displayMonth.month - 1], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
                           const Icon(Icons.arrow_drop_down, size: 16, color: Colors.black87),
                           const SizedBox(width: 8),
                           Text('${_displayMonth.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
@@ -722,7 +722,7 @@ class _DateRangePickerDialogState extends State<_DateRangePickerDialog> {
                         children: [
                           const Icon(Icons.calendar_today, size: 14, color: Colors.black87),
                           const SizedBox(width: 6),
-                          Text('${_months[_displayMonth.month - 1]}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
+                          Text(_months[_displayMonth.month - 1], style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),
                           const Icon(Icons.arrow_drop_down, size: 16, color: Colors.black87),
                           const SizedBox(width: 8),
                           Text('${_displayMonth.year}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black87)),

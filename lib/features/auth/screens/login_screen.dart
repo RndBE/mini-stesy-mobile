@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import '../data/auth_repository.dart';
 import '../../../shared/theme/app_theme.dart';
-import '../../../core/constants/api_constants.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});

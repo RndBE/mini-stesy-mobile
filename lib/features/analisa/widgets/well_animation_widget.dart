@@ -68,7 +68,7 @@ class _WellAnimationWidgetState extends State<WellAnimationWidget>
 
     return AnimatedBuilder(
       animation: _ctrl,
-      builder: (_, __) {
+      builder: (_, _) {
         return Container(
           width: double.infinity,
           height: widgetHeight,
