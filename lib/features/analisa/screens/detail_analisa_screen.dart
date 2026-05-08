@@ -324,122 +324,108 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return _buildSkeletonLoading();
-    }
-
-    if (_errorMessage != null) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.error_outline, size: 48, color: Colors.red),
-            const SizedBox(height: 16),
-            Text('Gagal memuat data:\n$_errorMessage', 
-                 textAlign: TextAlign.center,
-                 style: TextStyle(color: Colors.grey.shade600)),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _fetchData,
-              child: const Text('Coba Lagi'),
-            ),
-          ],
-        ),
-      );
-    }
-
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
-          // Header Info Card
+          // Header Info Card diletakkan di luar loading agar Hero animation selalu punya tujuan saat frame pertama
           _buildHeaderInfoCard(),
           const SizedBox(height: 16),
           
-          // Segmented Buttons (Hari, Bulan, Tahun, Rentang)
-          _buildSegmentedButtons(),
-          const SizedBox(height: 16),
-
-          // Selector Parameter
-          if (_availableParams.isNotEmpty) ...[
-            _buildParameterSelector(),
+          if (_isLoading)
+            _buildSkeletonContentOnly()
+          else if (_errorMessage != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 48),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                  const SizedBox(height: 16),
+                  Text('Gagal memuat data:\n$_errorMessage', 
+                       textAlign: TextAlign.center,
+                       style: TextStyle(color: Colors.grey.shade600)),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: _fetchData,
+                    child: const Text('Coba Lagi'),
+                  ),
+                ],
+              ),
+            )
+          else ...[
+            // Segmented Buttons (Hari, Bulan, Tahun, Rentang)
+            _buildSegmentedButtons(),
             const SizedBox(height: 16),
-          ],
 
-          // Chart Card
-          _buildChartCard(),
-          const SizedBox(height: 16),
+            // Selector Parameter
+            if (_availableParams.isNotEmpty) ...[
+              _buildParameterSelector(),
+              const SizedBox(height: 16),
+            ],
 
-          // Data Table Card
-          _buildDataTableCard(),
+            // Chart Card
+            _buildChartCard(),
+            const SizedBox(height: 16),
+
+            // Data Table Card
+            _buildDataTableCard(),
+          ]
         ],
       ),
     );
   }
 
-  Widget _buildSkeletonLoading() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
-      child: Shimmer.fromColors(
-        baseColor: Colors.grey.shade300,
-        highlightColor: Colors.grey.shade100,
-        child: Column(
-          children: [
-            // Header Info Card Skeleton
-            Container(
-              height: 80,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            const SizedBox(height: 16),
-            
-            // Segmented Buttons Skeleton
-            Row(
-              children: List.generate(4, (index) => Expanded(
-                child: Container(
-                  height: 36,
-                  margin: EdgeInsets.only(right: index == 3 ? 0 : 8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
+  Widget _buildSkeletonContentOnly() {
+    return Shimmer.fromColors(
+      baseColor: Colors.grey.shade300,
+      highlightColor: Colors.grey.shade100,
+      child: Column(
+        children: [
+          // Segmented Buttons Skeleton
+          Row(
+            children: List.generate(4, (index) => Expanded(
+              child: Container(
+                height: 36,
+                margin: EdgeInsets.only(right: index == 3 ? 0 : 8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
                 ),
-              )),
-            ),
-            const SizedBox(height: 16),
-
-            // Selector Parameter Skeleton
-            Container(
-              height: 50,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
               ),
-            ),
-            const SizedBox(height: 16),
+            )),
+          ),
+          const SizedBox(height: 16),
 
-            // Chart Card Skeleton
-            Container(
-              height: 300,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
+          // Selector Parameter Skeleton
+          Container(
+            height: 50,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
             ),
-            const SizedBox(height: 16),
+          ),
+          const SizedBox(height: 16),
 
-            // Data Table Card Skeleton
-            Container(
-              height: 250,
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
+          // Chart Card Skeleton
+          Container(
+            height: 300,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 16),
+
+          // Data Table Card Skeleton
+          Container(
+            height: 250,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -460,7 +446,10 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       ),
       child: Row(
         children: [
-          _buildParameterIcon(),
+          Hero(
+            tag: 'hero-${widget.idLogger}-${widget.parameterName}',
+            child: _buildParameterIcon(),
+          ),
           const SizedBox(width: 16),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,

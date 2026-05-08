@@ -508,7 +508,10 @@ class PosVisualizationWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 36, color: isOnline ? color : Colors.grey),
+            Hero(
+              tag: 'hero-$idLogger-$parameterName',
+              child: Icon(icon, size: 36, color: isOnline ? color : Colors.grey),
+            ),
             const SizedBox(height: 6),
             Text(
               label,
@@ -547,7 +550,10 @@ class PosVisualizationWidget extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            SvgPicture.asset(svgPath, width: 36, height: 36),
+            Hero(
+              tag: 'hero-$idLogger-$parameterName',
+              child: SvgPicture.asset(svgPath, width: 36, height: 36),
+            ),
             const SizedBox(height: 6),
             Text(
               label,
@@ -715,11 +721,14 @@ class PosVisualizationWidget extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Image.asset(
-                  'assets/images/muka_air_tanah.png',
-                  width: 50,
-                  height: 50,
-                  fit: BoxFit.contain,
+                Hero(
+                  tag: 'hero-$idLogger-muka_air_tanah',
+                  child: Image.asset(
+                    'assets/images/muka_air_tanah.png',
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.contain,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Column(
@@ -784,21 +793,27 @@ class PosVisualizationWidget extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
         children: [
           if (assetPath != null)
-            SvgPicture.asset(
-              assetPath,
-              width: 28,
-              height: 28,
-              colorFilter: !isOnline
-                  ? const ColorFilter.matrix(<double>[
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0.2126, 0.7152, 0.0722, 0, 0,
-                      0, 0, 0, 1, 0,
-                    ])
-                  : null,
+            Hero(
+              tag: 'hero-$idLogger-$parameterName',
+              child: SvgPicture.asset(
+                assetPath,
+                width: 28,
+                height: 28,
+                colorFilter: !isOnline
+                    ? const ColorFilter.matrix(<double>[
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0.2126, 0.7152, 0.0722, 0, 0,
+                        0, 0, 0, 1, 0,
+                      ])
+                    : null,
+              ),
             )
           else if (icon != null && color != null)
-            Icon(icon, size: 28, color: isOnline ? color : Colors.grey),
+            Hero(
+              tag: 'hero-$idLogger-$parameterName',
+              child: Icon(icon, size: 28, color: isOnline ? color : Colors.grey),
+            ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
