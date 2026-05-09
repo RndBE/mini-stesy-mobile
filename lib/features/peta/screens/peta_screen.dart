@@ -1,10 +1,12 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
 import 'package:flutter_svg/flutter_svg.dart';
 import '../data/peta_repository.dart';
 import '../../analisa/screens/detail_analisa_screen.dart';
+import '../../analisa/widgets/offline_bottom_sheet.dart';
 
 class PetaScreen extends StatefulWidget {
   const PetaScreen({super.key});
@@ -132,12 +134,31 @@ class _PetaScreenState extends State<PetaScreen> with TickerProviderStateMixin {
       }
     } catch (e) {
       if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gagal memuat peta: $e')),
-        );
+        if (e is DioException && (e.response?.statusCode == 401 || e.response?.statusCode == 403)) {
+          return; // Biarkan interceptor global menangani
+        }
+
+        bool isNetworkError = false;
+        if (e is DioException) {
+          isNetworkError = e.type == DioExceptionType.connectionTimeout ||
+                           e.type == DioExceptionType.sendTimeout ||
+                           e.type == DioExceptionType.receiveTimeout ||
+                           e.type == DioExceptionType.connectionError ||
+                           e.type == DioExceptionType.unknown;
+        } else if (e.toString().toLowerCase().contains('socketexception') || e.toString().toLowerCase().contains('host lookup')) {
+          isNetworkError = true;
+        }
+
+        if (isNetworkError) {
+          showOfflineBottomSheet(context, () {
+            _fetchPoints();
+          });
+        } else {
+          setState(() { _isLoading = false; });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Gagal memuat peta: ${e is DioException && e.response?.data is Map ? e.response?.data['message'] : e.toString()}')),
+          );
+        }
       }
     }
   }

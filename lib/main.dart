@@ -10,12 +10,23 @@ import 'features/peta/screens/peta_screen.dart';
 import 'features/onboarding/screens/onboarding_screen.dart';
 import 'shared/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'core/storage/secure_storage.dart';
 
 // Handle background messages
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   await Firebase.initializeApp();
   print("Handling a background message: ${message.messageId}");
+
+  if (message.data['type'] == 'force_logout') {
+    print("Silent push received in background. Forcing logout.");
+    await SecureStorage.clearAll();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('pending_suspend_message', message.data['reason'] ?? 'Akun Anda telah dinonaktifkan.');
+  } else if (message.data['type'] == 'password_changed') {
+    print("Silent push received in background (Password changed). Clean logout.");
+    await SecureStorage.clearAll();
+  }
 }
 
 // Local notifications plugin
@@ -26,6 +37,9 @@ const AndroidNotificationChannel highImportanceChannel = AndroidNotificationChan
   'High Importance Notifications',
   importance: Importance.high,
 );
+
+// ==== GLOBAL NAVIGATOR KEY ====
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -61,6 +75,7 @@ class StesyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'STESY Mobile',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
@@ -130,12 +145,31 @@ class _SplashRouterState extends State<SplashRouter>
       sound: true,
     );
 
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print("=== TERIMA PESAN FCM DI FOREGROUND! ===");
       print("Title: ${message.notification?.title}");
       print("Body: ${message.notification?.body}");
       print("Data: ${message.data}");
       
+      if (message.data['type'] == 'force_logout') {
+        print("Silent push received in foreground. Forcing logout.");
+        await SecureStorage.clearAll();
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('pending_suspend_message', message.data['reason'] ?? 'Akun Anda telah dinonaktifkan.');
+        if (navigatorKey.currentContext != null) {
+          Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+        return; // Jangan tampilkan notifikasi lokal untuk silent push
+      } else if (message.data['type'] == 'password_changed') {
+        print("Silent push received in foreground (Password changed). Clean logout.");
+        await SecureStorage.clearAll();
+        // Tendang ke login tanpa pesan peringatan merah
+        if (navigatorKey.currentContext != null) {
+          Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/login', (route) => false);
+        }
+        return;
+      }
+
       RemoteNotification? notification = message.notification;
       final title = notification?.title ?? message.data['title'] ?? message.data['judul'];
       final body = notification?.body ?? message.data['body'] ?? message.data['message'] ?? message.data['pesan'];

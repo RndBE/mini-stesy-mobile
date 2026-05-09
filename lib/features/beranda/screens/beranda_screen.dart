@@ -103,11 +103,95 @@ class _BerandaScreenState extends State<BerandaScreen> {
     });
   }
 
-  void _onLogout() async {
-    await _authRepo.logout();
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/login');
-    }
+  void _onLogout() {
+    const colorPrimaryDark = Color(0xFF2B3377);
+    
+    showDialog(
+      context: context,
+      builder: (BuildContext dialogContext) {
+        return Dialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Ikon Formal
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: colorPrimaryDark.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.exit_to_app_rounded, color: colorPrimaryDark, size: 40),
+                ),
+                const SizedBox(height: 20),
+                // Judul
+                const Text(
+                  'Akhiri Sesi Pemantauan',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: colorPrimaryDark,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // Deskripsi Formal
+                const Text(
+                  'Anda akan keluar dari sistem STESY. Pastikan seluruh pengecekan data telah selesai.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                // Tombol Aksi
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(dialogContext).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.grey.shade700,
+                          side: BorderSide(color: Colors.grey.shade300),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Kembali', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.of(dialogContext).pop(); // Tutup dialog
+                          await _authRepo.logout();
+                          if (mounted) {
+                            Navigator.of(context).pushReplacementNamed('/login');
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD32F2F), // Merah formal (Material Red 700)
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: const Text('Keluar', style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override

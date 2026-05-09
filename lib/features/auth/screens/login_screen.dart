@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/auth_repository.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -39,6 +40,19 @@ class _LoginScreenState extends State<LoginScreen>
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
     _animCtrl.forward();
+
+    _checkPendingSuspendMessage();
+  }
+
+  Future<void> _checkPendingSuspendMessage() async {
+    final prefs = await SharedPreferences.getInstance();
+    final msg = prefs.getString('pending_suspend_message');
+    if (msg != null && msg.isNotEmpty) {
+      await prefs.remove('pending_suspend_message');
+      if (mounted) {
+        Future.microtask(() => _showSuspendDialog(msg));
+      }
+    }
   }
 
   @override
@@ -80,15 +94,85 @@ class _LoginScreenState extends State<LoginScreen>
         Navigator.of(context).pushReplacementNamed('/beranda');
       }
     } on DioException catch (e) {
+      final statusCode = e.response?.statusCode;
       final msg = e.response?.data?['message'] ??
           e.response?.data?['errors']?['username']?[0] ??
           'Terjadi kesalahan. Periksa koneksi internet.';
-      setState(() => _errorMessage = msg.toString());
+      
+      final msgStr = msg.toString().toLowerCase();
+      // Memunculkan Pop-Up jika status 403 atau pesan mengandung kata kunci suspend/nonaktif
+      if (statusCode == 403 || msgStr.contains('suspend') || msgStr.contains('nonaktif') || msgStr.contains('tidak aktif') || msgStr.contains('diblokir')) {
+        _showSuspendDialog(msg.toString());
+      } else {
+        setState(() => _errorMessage = msg.toString());
+      }
     } catch (e) {
       setState(() => _errorMessage = 'Terjadi kesalahan tidak terduga.');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  void _showSuspendDialog(String message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withOpacity(0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.block_flipped, color: Colors.red, size: 40),
+                ),
+                const SizedBox(height: 20),
+                const Text(
+                  'Akses Ditolak',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.red,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  message, // Pesan asli dari backend (contoh: "Akun Anda di-suspend")
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    color: Colors.black87,
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF2B3377), // Warna primary STESY
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Mengerti', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -101,10 +185,12 @@ class _LoginScreenState extends State<LoginScreen>
 
     return Scaffold(
       backgroundColor: colorPrimaryDark,
-      body: SingleChildScrollView(
-        child: ConstrainedBox(
-          constraints: BoxConstraints(minHeight: MediaQuery.sizeOf(context).height),
-          child: IntrinsicHeight(
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
             child: Column(
               children: [
                     // ── Bagian Atas: Ilustrasi SVG ──
@@ -356,8 +442,11 @@ class _LoginScreenState extends State<LoginScreen>
                   ],
                 ),
               ),
+              ),
             ),
-          ),
+          );
+        },
+      ),
     );
   }
 

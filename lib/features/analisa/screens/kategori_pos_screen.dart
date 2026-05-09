@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import 'package:intl/intl.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shimmer/shimmer.dart';
@@ -73,28 +74,35 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
       }
     } catch (e) {
       if (mounted) {
-        String errorText = e.toString();
-        String displayError = errorText;
         bool isNetworkError = false;
+        String displayError = e.toString();
 
-        if (errorText.contains('SocketException') || 
-            errorText.contains('connection error') || 
-            errorText.contains('Failed host lookup')) {
+        if (e is DioException) {
+          if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
+            return; // Biarkan interceptor global yang menangani (force logout / suspend)
+          }
+
+          isNetworkError = e.type == DioExceptionType.connectionTimeout ||
+                           e.type == DioExceptionType.sendTimeout ||
+                           e.type == DioExceptionType.receiveTimeout ||
+                           e.type == DioExceptionType.connectionError ||
+                           e.type == DioExceptionType.unknown;
+
+          if (e.response != null && e.response?.data is Map && e.response?.data['message'] != null) {
+            displayError = e.response?.data['message'];
+          } else {
+            displayError = e.message ?? e.toString();
+          }
+        } else if (e.toString().toLowerCase().contains('socketexception') || e.toString().toLowerCase().contains('host lookup')) {
           isNetworkError = true;
-          displayError = 'Tidak ada koneksi internet. Silakan periksa jaringan Anda dan pastikan perangkat terhubung.';
-        } else {
-          displayError = errorText.replaceAll('Exception: ', '');
         }
 
-        // Jika masalah jaringan, gunakan bottom sheet pintar
-        // Jika error server biasa, gunakan bottom sheet manual
         if (isNetworkError) {
           showOfflineBottomSheet(context, () {
-            setState(() { _isLoading = true; });
             _fetchData();
           });
         } else {
-          setState(() { _isLoading = false; });
+          setState(() { _isLoading = false; }); // Hentikan loading hanya untuk error server/biasa
           showModalBottomSheet(
             context: context,
             isDismissible: false,
