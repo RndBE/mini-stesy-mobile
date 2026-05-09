@@ -156,7 +156,7 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1E3A8A), // Biru gelap sesuai header
+        backgroundColor: const Color(0xFF2B3377), // Biru gelap sesuai header beranda
         elevation: 0,
         centerTitle: !_isSearching,
         titleSpacing: _isSearching ? 16 : null,
@@ -322,7 +322,7 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
         // ── Scrollable Chips Pemilihan Pos
         Container(
           height: 50,
-          color: const Color(0xFF1E3A8A), // Background biru gelap dari header dilanjutkan
+          color: const Color(0xFF2B3377), // Background biru gelap dari header dilanjutkan
           child: _filteredPoints.isEmpty 
             ? Center(
                 child: Text(
@@ -340,16 +340,22 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
                   final isSelected = _selectedPoint == point;
                   final namaLogger = point['nama_logger'] ?? 'Pos Unknown';
 
-              // Warna chip
-              final chipBgColor = isOnline
-                  ? const Color(0xFFD1FAE5) // Hijau muda cerah
-                  : const Color(0xFFFEE2E2); // Merah muda
-              final textColor = isOnline
-                  ? const Color(0xFF065F46) // Teks hijau gelap
-                  : const Color(0xFF991B1B); // Teks merah gelap
-              final iconColor = isOnline
-                  ? const Color(0xFF10B981) // Hijau solid
-                  : const Color(0xFFEF4444); // Merah solid
+              // Warna chip (Lebih redup jika tidak dipilih)
+              final chipBgColor = isSelected 
+                  ? (isOnline ? const Color(0xFFD1FAE5) : const Color(0xFFFEE2E2)) // Solid cerah untuk yg dipilih
+                  : (isOnline ? const Color(0xFF10B981).withOpacity(0.15) : const Color(0xFFEF4444).withOpacity(0.15)); // Transparan gelap untuk yg tidak dipilih
+
+              final borderColor = isSelected
+                  ? Colors.white
+                  : (isOnline ? const Color(0xFF10B981).withOpacity(0.3) : const Color(0xFFEF4444).withOpacity(0.3));
+
+              final textColor = isSelected
+                  ? (isOnline ? const Color(0xFF065F46) : const Color(0xFF991B1B)) // Teks gelap untuk yg dipilih
+                  : Colors.white.withOpacity(0.85); // Teks putih untuk yg tidak dipilih
+
+              final iconColor = isSelected
+                  ? (isOnline ? const Color(0xFF10B981) : const Color(0xFFEF4444)) // Ikon cerah solid
+                  : (isOnline ? const Color(0xFF10B981).withOpacity(0.8) : const Color(0xFFEF4444).withOpacity(0.8)); // Ikon agak pudar
 
               return GestureDetector(
                 onTap: () {
@@ -357,22 +363,23 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
                     _selectedPoint = point;
                   });
                 },
-                child: Container(
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
                   margin: const EdgeInsets.only(right: 12),
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                   decoration: BoxDecoration(
                     color: chipBgColor,
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: isSelected ? Colors.white : Colors.transparent,
-                      width: isSelected ? 2 : 0,
+                      color: borderColor,
+                      width: isSelected ? 2 : 1,
                     ),
                     boxShadow: isSelected
                         ? [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
-                              blurRadius: 4,
-                              offset: const Offset(0, 2),
+                              color: Colors.black.withOpacity(0.15),
+                              blurRadius: 6,
+                              offset: const Offset(0, 3),
                             )
                           ]
                         : null,

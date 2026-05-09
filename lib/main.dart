@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:dio/dio.dart';
 import 'features/auth/screens/login_screen.dart';
 import 'features/auth/data/auth_repository.dart';
 import 'features/beranda/screens/beranda_screen.dart';
@@ -11,6 +14,7 @@ import 'features/onboarding/screens/onboarding_screen.dart';
 import 'shared/theme/app_theme.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'core/storage/secure_storage.dart';
+import 'core/constants/api_constants.dart';
 
 // Handle background messages
 @pragma('vm:entry-point')
@@ -107,6 +111,7 @@ class _SplashRouterState extends State<SplashRouter>
     with SingleTickerProviderStateMixin {
   late AnimationController _ctrl;
   late Animation<double> _scaleAnim;
+  String _version = '';
 
   @override
   void initState() {
@@ -118,8 +123,36 @@ class _SplashRouterState extends State<SplashRouter>
     _scaleAnim = CurvedAnimation(parent: _ctrl, curve: Curves.elasticOut);
     _ctrl.forward();
     
+    _initPackageInfo();
+    
     _setupFCM();
     _checkAuth();
+  }
+
+  Future<void> _initPackageInfo() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = 'v${info.version}';
+        });
+      }
+    } catch (e) {
+      print('Error getting package info: $e');
+    }
+  }
+
+  bool _isUpdateRequired(String current, String latest) {
+    if (current.isEmpty || latest.isEmpty) return false;
+    List<int> c = current.replaceAll('v', '').split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    List<int> l = latest.replaceAll('v', '').split('.').map((e) => int.tryParse(e) ?? 0).toList();
+    for (int i = 0; i < 3; i++) {
+      int cVal = i < c.length ? c[i] : 0;
+      int lVal = i < l.length ? l[i] : 0;
+      if (lVal > cVal) return true;
+      if (lVal < cVal) return false;
+    }
+    return false;
   }
 
   Future<void> _setupFCM() async {
@@ -257,6 +290,72 @@ class _SplashRouterState extends State<SplashRouter>
       return; // Stop the flow until they retry
     }
 
+    // ── Check App Config for Version Update ──
+    try {
+      final dio = Dio();
+      final response = await dio.get('$kBaseUrl/api/v1/mobile/auth/config', 
+          options: Options(receiveTimeout: const Duration(seconds: 5)));
+      
+      if (response.data != null && response.data['success'] == true) {
+        final config = response.data['data'];
+        final latestVersion = config['latest_app_version'] ?? '1.0.0';
+        final forceUpdate = config['force_update'] ?? false;
+        final updateUrl = config['update_url'] ?? '';
+
+        if (_isUpdateRequired(_version, latestVersion)) {
+          if (!mounted) return;
+          
+          await showDialog(
+            context: context,
+            barrierDismissible: !forceUpdate,
+            builder: (context) => PopScope(
+              canPop: !forceUpdate,
+              child: AlertDialog(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                title: Row(
+                  children: [
+                    Icon(Icons.system_update, color: forceUpdate ? Colors.red : const Color(0xFF2E3B84)),
+                    const SizedBox(width: 8),
+                    const Text('Pembaruan Tersedia', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  ],
+                ),
+                content: Text(
+                  forceUpdate
+                      ? 'Versi aplikasi Anda sudah usang. Anda wajib memperbarui aplikasi ke versi $latestVersion untuk dapat melanjutkan.'
+                      : 'Versi terbaru ($latestVersion) telah tersedia. Perbarui sekarang untuk mendapatkan fitur terbaru dan perbaikan sistem.',
+                  style: const TextStyle(fontSize: 14, color: Colors.black87, height: 1.4),
+                ),
+                actions: [
+                  if (!forceUpdate)
+                    TextButton(
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Text('Nanti Saja', style: TextStyle(color: Colors.grey, fontWeight: FontWeight.bold)),
+                    ),
+                  TextButton(
+                    onPressed: () async {
+                      if (updateUrl.isNotEmpty) {
+                        final uri = Uri.parse(updateUrl);
+                        if (await canLaunchUrl(uri)) {
+                          await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        }
+                      }
+                      if (!forceUpdate) Navigator.of(context).pop();
+                    },
+                    child: Text('Update Sekarang', style: TextStyle(color: forceUpdate ? Colors.red : const Color(0xFF2E3B84), fontWeight: FontWeight.bold)),
+                  ),
+                ],
+              ),
+            ),
+          );
+          if (forceUpdate) return; // Stop Splash flow if forced update
+        }
+      }
+    } catch (e) {
+      print('Config check failed: $e');
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final isFirstTime = prefs.getBool('isFirstTime') ?? true;
 
@@ -317,19 +416,34 @@ class _SplashRouterState extends State<SplashRouter>
             Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
-                padding: const EdgeInsets.only(bottom: 100.0), // Jarak dari ujung bawah layar diperbesar agar posisinya lebih naik
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
+                padding: const EdgeInsets.only(bottom: 60.0), // Disesuaikan agar ada ruang untuk teks versi
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Image.asset(
-                      'assets/images/logo 1.png',
-                      height: 28, // Ukuran logo dikecilkan
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Image.asset(
+                          'assets/images/logo 1.png',
+                          height: 28, // Ukuran logo dikecilkan
+                        ),
+                        const SizedBox(width: 24), // Jarak antara kedua logo
+                        Image.asset(
+                          'assets/images/mini_stesy 1.png',
+                          height: 28, // Ukuran logo dikecilkan
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 24), // Jarak antara kedua logo
-                    Image.asset(
-                      'assets/images/mini_stesy 1.png',
-                      height: 28, // Ukuran logo dikecilkan
-                    ),
+                    const SizedBox(height: 16),
+                    if (_version.isNotEmpty)
+                      Text(
+                        _version,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.black54,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
                   ],
                 ),
               ),

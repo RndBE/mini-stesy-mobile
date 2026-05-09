@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import '../data/auth_repository.dart';
 import '../../../shared/theme/app_theme.dart';
 
@@ -22,6 +23,7 @@ class _LoginScreenState extends State<LoginScreen>
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _errorMessage;
+  String _version = '';
 
   late AnimationController _animCtrl;
   late Animation<double> _fadeAnim;
@@ -41,7 +43,21 @@ class _LoginScreenState extends State<LoginScreen>
     ).animate(CurvedAnimation(parent: _animCtrl, curve: Curves.easeOut));
     _animCtrl.forward();
 
+    _initPackageInfo();
     _checkPendingSuspendMessage();
+  }
+
+  Future<void> _initPackageInfo() async {
+    try {
+      final info = await PackageInfo.fromPlatform();
+      if (mounted) {
+        setState(() {
+          _version = 'v${info.version}';
+        });
+      }
+    } catch (e) {
+      print('Error getting package info: $e');
+    }
   }
 
   Future<void> _checkPendingSuspendMessage() async {
@@ -454,6 +470,18 @@ class _LoginScreenState extends State<LoginScreen>
                                         height: 32),
                                   ],
                                 ),
+                                if (_version.isNotEmpty) ...[
+                                  const SizedBox(height: 16),
+                                  Text(
+                                    _version,
+                                    textAlign: TextAlign.center,
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.black54,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
                                 const SizedBox(height: 16),
                               ],
                             ),
