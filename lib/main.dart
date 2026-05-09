@@ -20,9 +20,12 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 
   if (message.data['type'] == 'force_logout') {
     print("Silent push received in background. Forcing logout.");
-    await SecureStorage.clearAll();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('pending_suspend_message', message.data['reason'] ?? 'Akun Anda telah dinonaktifkan.');
+    final token = await SecureStorage.getToken();
+    if (token != null && token.isNotEmpty) {
+      await SecureStorage.clearAll();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('pending_suspend_message', message.data['reason'] ?? 'Akun Anda telah dinonaktifkan.');
+    }
   } else if (message.data['type'] == 'password_changed') {
     print("Silent push received in background (Password changed). Clean logout.");
     await SecureStorage.clearAll();
@@ -153,19 +156,25 @@ class _SplashRouterState extends State<SplashRouter>
       
       if (message.data['type'] == 'force_logout') {
         print("Silent push received in foreground. Forcing logout.");
-        await SecureStorage.clearAll();
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('pending_suspend_message', message.data['reason'] ?? 'Akun Anda telah dinonaktifkan.');
-        if (navigatorKey.currentContext != null) {
-          Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/login', (route) => false);
+        final token = await SecureStorage.getToken();
+        if (token != null && token.isNotEmpty) {
+          await SecureStorage.clearAll();
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('pending_suspend_message', message.data['reason'] ?? 'Akun Anda telah dinonaktifkan.');
+          if (navigatorKey.currentContext != null) {
+            Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
         }
         return; // Jangan tampilkan notifikasi lokal untuk silent push
       } else if (message.data['type'] == 'password_changed') {
         print("Silent push received in foreground (Password changed). Clean logout.");
-        await SecureStorage.clearAll();
-        // Tendang ke login tanpa pesan peringatan merah
-        if (navigatorKey.currentContext != null) {
-          Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/login', (route) => false);
+        final token = await SecureStorage.getToken();
+        if (token != null && token.isNotEmpty) {
+          await SecureStorage.clearAll();
+          // Tendang ke login tanpa pesan peringatan merah
+          if (navigatorKey.currentContext != null) {
+            Navigator.of(navigatorKey.currentContext!).pushNamedAndRemoveUntil('/login', (route) => false);
+          }
         }
         return;
       }

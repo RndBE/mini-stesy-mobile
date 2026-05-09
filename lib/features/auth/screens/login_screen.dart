@@ -114,6 +114,28 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _showSuspendDialog(String message) {
+    final bool isMaintenance = message.toLowerCase().contains('maintenance');
+    final bool isSuspend = message.toLowerCase().contains('suspend');
+    
+    // Default to Non-Aktif (Merah)
+    Color themeColor = Colors.red;
+    Color bgColor = Colors.red.withOpacity(0.1);
+    IconData iconData = Icons.block_flipped;
+    String title = 'Akun Non-Aktif';
+
+    if (isMaintenance) {
+      themeColor = Colors.blue.shade700;
+      bgColor = Colors.blue.withOpacity(0.1);
+      iconData = Icons.build_circle;
+      title = 'Sedang Perbaikan';
+      message = message.replaceAll(RegExp(r'^maintenance:\s*', caseSensitive: false), '');
+    } else if (isSuspend) {
+      themeColor = Colors.amber.shade700;
+      bgColor = Colors.amber.withOpacity(0.1);
+      iconData = Icons.warning_rounded;
+      title = 'Akun Ditangguhkan';
+    }
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -127,23 +149,23 @@ class _LoginScreenState extends State<LoginScreen>
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.red.withOpacity(0.1),
+                    color: bgColor,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.block_flipped, color: Colors.red, size: 40),
+                  child: Icon(iconData, color: themeColor, size: 40),
                 ),
                 const SizedBox(height: 20),
-                const Text(
-                  'Akses Ditolak',
+                Text(
+                  title,
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
-                    color: Colors.red,
+                    color: themeColor,
                   ),
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  message, // Pesan asli dari backend (contoh: "Akun Anda di-suspend")
+                  message, // Pesan asli dari backend
                   textAlign: TextAlign.center,
                   style: const TextStyle(
                     fontSize: 14,
@@ -157,7 +179,7 @@ class _LoginScreenState extends State<LoginScreen>
                   child: ElevatedButton(
                     onPressed: () => Navigator.of(context).pop(),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF2B3377), // Warna primary STESY
+                      backgroundColor: themeColor,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                       shape: RoundedRectangleBorder(
@@ -441,7 +463,6 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ],
                 ),
-              ),
               ),
             ),
           );
