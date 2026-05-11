@@ -582,7 +582,7 @@ class _KategoriPosScreenState extends State<KategoriPosScreen> {
         // Skeleton Chips dengan background biru
         Container(
           height: 50,
-          color: const Color(0xFF1E3A8A), // Background biru gelap dari header dilanjutkan
+          color: const Color(0xFF2B3377), // Background biru gelap dari header dilanjutkan
           child: Shimmer.fromColors(
             baseColor: Colors.white.withOpacity(0.3),
             highlightColor: Colors.white.withOpacity(0.6),
