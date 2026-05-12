@@ -58,8 +58,9 @@ class WarningNotificationDetailScreen extends StatelessWidget {
 
     // ARR → PNG dari klasifikasi_hujan
     String pngAsset = 'assets/images/klasifikasi_hujan/tidak_hujan.png';
-    if (s.contains('sangat lebat'))   pngAsset = 'assets/images/klasifikasi_hujan/hujan_sangat_lebat.png';
-    else if (s.contains('lebat'))     pngAsset = 'assets/images/klasifikasi_hujan/hujan_lebat.png';
+    if (s.contains('sangat lebat')) {
+      pngAsset = 'assets/images/klasifikasi_hujan/hujan_sangat_lebat.png';
+    } else if (s.contains('lebat'))     pngAsset = 'assets/images/klasifikasi_hujan/hujan_lebat.png';
     else if (s.contains('sedang'))    pngAsset = 'assets/images/klasifikasi_hujan/hujan_sedang.png';
     else if (s.contains('sangat ringan')) pngAsset = 'assets/images/klasifikasi_hujan/hujan_sangat_ringan.png';
     else if (s.contains('ringan'))    pngAsset = 'assets/images/klasifikasi_hujan/hujan_ringan.png';

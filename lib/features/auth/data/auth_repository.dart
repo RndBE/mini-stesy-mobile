@@ -24,9 +24,9 @@ class AuthRepository {
 
     await SecureStorage.saveToken(token);
     await SecureStorage.saveUser(
-      idUser:    user.idUser,
-      nama:      user.nama,
-      username:  user.username,
+      idUser: user.idUser,
+      nama: user.nama,
+      username: user.username,
       levelUser: user.levelUser,
     );
 
@@ -56,20 +56,23 @@ class AuthRepository {
     final data = await SecureStorage.getUser();
     if (data['id_user'] == null) return null;
     return UserModel(
-      idUser:    data['id_user']!,
-      nama:      data['nama'] ?? '',
-      username:  data['username'] ?? '',
+      idUser: data['id_user']!,
+      nama: data['nama'] ?? '',
+      username: data['username'] ?? '',
       levelUser: data['level_user'] ?? '',
     );
   }
 
   /// Registrasi FCM Token ke backend.
   Future<void> registerFcmToken(String token) async {
+    final hasToken = await isLoggedIn();
+    if (!hasToken) {
+      print("User is not logged in. Skipping FCM Token registration.");
+      return;
+    }
+
     try {
-      await _dio.post(
-        ApiEndpoints.fcmRegister,
-        data: {'fcm_token': token},
-      );
+      await _dio.post(ApiEndpoints.fcmRegister, data: {'fcm_token': token});
     } catch (e) {
       if (e is DioException) {
         print("API Error: ${e.response?.statusCode} - ${e.response?.data}");

@@ -288,9 +288,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
 
       final dt = DateTime.parse(row['waktu']).toLocal();
       String key;
-      if (_selectedRange == 'Hari') {
+      if (_selectedRange == 'Hari' || _selectedRange == 'Rentang') {
         key = DateFormat('yyyy-MM-dd HH:00').format(dt);
-      } else if (_selectedRange == 'Bulan' || _selectedRange == 'Rentang') {
+      } else if (_selectedRange == 'Bulan') {
         key = DateFormat('yyyy-MM-dd').format(dt);
       } else {
         key = DateFormat('yyyy-MM').format(dt);
@@ -326,7 +326,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       });
 
       DateTime parsedTime;
-      if (_selectedRange == 'Hari') {
+      if (_selectedRange == 'Hari' || _selectedRange == 'Rentang') {
         parsedTime = DateTime.parse('$key:00');
       } else if (_selectedRange == 'Tahun') {
         parsedTime = DateTime.parse('$key-01');
@@ -594,7 +594,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                 }
               }
 
-              if (shouldFetch || _selectedRange != option) {
+              if (shouldFetch) {
                 setState(() {
                   _selectedRange = option;
                 });
@@ -713,6 +713,8 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                       final DateTime time = firstPoint.x;
                       if (_selectedRange == 'Hari') {
                         timeLabel = DateFormat('HH:mm').format(time);
+                      } else if (_selectedRange == 'Rentang') {
+                        timeLabel = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(time);
                       } else if (_selectedRange == 'Tahun') {
                         timeLabel = DateFormat('MMMM yyyy', 'id_ID').format(time);
                       } else {
@@ -1127,6 +1129,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                               if (!isSelected) {
                                 setState(() {
                                   _currentParameterName = paramName;
+                                  _displayName = paramName;
                                 });
                                 _fetchData();
                               }

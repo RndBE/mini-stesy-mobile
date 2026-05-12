@@ -165,10 +165,11 @@ Future<bool> _launchUpdateUrl(String updateUrl) async {
 
 Future<void> _launchConfiguredUpdateUrl() async {
   try {
-    final response = await Dio().get(
-      '$kBaseUrl/api/v1/mobile/auth/config',
-      options: Options(receiveTimeout: const Duration(seconds: 5)),
-    );
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ));
+    final response = await dio.get('$kBaseUrl/api/v1/mobile/auth/config');
 
     if (response.data == null || response.data['success'] != true) {
       return;
@@ -271,10 +272,11 @@ Future<void> _showUpdateNotificationDialog(Map<String, dynamic> data) async {
 
 Future<String> _getConfiguredUpdateUrl() async {
   try {
-    final response = await Dio().get(
-      '$kBaseUrl/api/v1/mobile/auth/config',
-      options: Options(receiveTimeout: const Duration(seconds: 5)),
-    );
+    final dio = Dio(BaseOptions(
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 5),
+    ));
+    final response = await dio.get('$kBaseUrl/api/v1/mobile/auth/config');
 
     if (response.data == null || response.data['success'] != true) {
       return '';
@@ -404,7 +406,7 @@ class _SplashRouterState extends State<SplashRouter>
 
   Future<void> _initPackageInfo() async {
     try {
-      final info = await PackageInfo.fromPlatform();
+      final info = await PackageInfo.fromPlatform().timeout(const Duration(seconds: 2));
       if (mounted) {
         setState(() {
           _version = 'v${info.version}';
@@ -616,10 +618,12 @@ class _SplashRouterState extends State<SplashRouter>
 
     // ── Check App Config for Version Update ──
     try {
-      final dio = Dio();
+      final dio = Dio(BaseOptions(
+        connectTimeout: const Duration(seconds: 5),
+        receiveTimeout: const Duration(seconds: 5),
+      ));
       final response = await dio.get(
         '$kBaseUrl/api/v1/mobile/auth/config',
-        options: Options(receiveTimeout: const Duration(seconds: 5)),
       );
 
       if (response.data != null && response.data['success'] == true) {
@@ -715,7 +719,7 @@ class _SplashRouterState extends State<SplashRouter>
     }
 
     final prefs = await SharedPreferences.getInstance();
-    final isFirstTime = prefs.getBool('isFirstTime') ?? true;
+    final isFirstTime = prefs.getBool('isFirstTimeApp') ?? true;
 
     if (isFirstTime) {
       if (!mounted) return;

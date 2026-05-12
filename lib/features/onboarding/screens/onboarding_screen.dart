@@ -50,7 +50,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isFirstTime', false);
+    await prefs.setBool('isFirstTimeApp', false);
     if (!mounted) return;
     Navigator.of(context).pushReplacementNamed('/login');
   }

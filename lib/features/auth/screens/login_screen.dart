@@ -258,7 +258,8 @@ class _LoginScreenState extends State<LoginScreen>
                                 child: Image.asset(
                                   'assets/images/login-page.png',
                                   fit: BoxFit.contain,
-                                  height: 250, // <-- UBAH ANGKA INI UNTUK MENGATUR UKURANNYA
+                                  // Tinggi dinamis: 35% dari tinggi layar
+                                  height: MediaQuery.of(context).size.height * 0.35, 
                                 ),
                               ),
                             ],

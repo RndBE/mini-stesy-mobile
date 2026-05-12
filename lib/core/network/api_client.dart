@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:dio_smart_retry/dio_smart_retry.dart';
@@ -11,7 +10,7 @@ import '../storage/secure_storage.dart';
 /// HTTP client terpusat dengan otomatis menyertakan Bearer token di setiap request.
 class ApiClient {
   static Dio? _instance;
-  static bool _isShowingSuspendDialog = false;
+  static final bool _isShowingSuspendDialog = false;
 
   static Dio get instance {
     _instance ??= _createDio();
