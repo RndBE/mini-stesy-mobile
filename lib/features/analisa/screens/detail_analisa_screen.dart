@@ -488,6 +488,27 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   }
 
   Widget _buildHeaderInfoCard() {
+    // Tentukan judul: prioritas namaPos > namaLogger > parameter name
+    final String title;
+    final String? subtitle;
+    
+    final paramText = _formatParamName(_displayName ?? _currentParameterName);
+    final bool hasParam = paramText.isNotEmpty;
+    
+    if (widget.namaPos != null && widget.namaPos!.isNotEmpty) {
+      title = widget.namaPos!;
+      subtitle = hasParam ? paramText : widget.namaLogger;
+    } else if (widget.namaLogger != null && widget.namaLogger!.isNotEmpty) {
+      title = widget.namaLogger!;
+      subtitle = hasParam ? paramText : null;
+    } else {
+      title = hasParam ? paramText : widget.idLogger;
+      subtitle = null;
+    }
+
+    // Saat loading dan belum ada parameter (misal: buka dari peta), tunjukkan shimmer
+    final bool showParamShimmer = _isLoading && !hasParam;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -503,42 +524,88 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       ),
       child: Row(
         children: [
-          Hero(
-            tag: 'hero-${widget.idLogger}-${widget.parameterName}',
-            child: _buildParameterIcon(),
-          ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                _formatParamName(_displayName ?? _currentParameterName),
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF1E293B),
+          // Icon: shimmer saat belum ada data parameter
+          if (showParamShimmer)
+            Shimmer.fromColors(
+              baseColor: Colors.grey.shade300,
+              highlightColor: Colors.grey.shade100,
+              child: Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(8),
                 ),
               ),
-              const SizedBox(height: 4),
-              Row(
-                children: [
-                  Icon(
-                    widget.isOnline ? Icons.fiber_manual_record : Icons.radio_button_checked,
-                    size: 12,
-                    color: widget.isOnline ? Colors.green : Colors.red,
+            )
+          else
+            Hero(
+              tag: 'hero-${widget.idLogger}-${widget.parameterName}',
+              child: _buildParameterIcon(),
+            ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1E293B),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    widget.isOnline ? 'Koneksi Terhubung' : 'Koneksi Terputus',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: widget.isOnline ? Colors.green : Colors.red,
-                      fontWeight: FontWeight.w600,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                // Subtitle: shimmer saat parameter belum diketahui
+                if (showParamShimmer) ...[
+                  const SizedBox(height: 4),
+                  Shimmer.fromColors(
+                    baseColor: Colors.grey.shade300,
+                    highlightColor: Colors.grey.shade100,
+                    child: Container(
+                      width: 100,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
                     ),
                   ),
+                ] else if (subtitle != null && subtitle.isNotEmpty) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ],
-              ),
-            ],
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      widget.isOnline ? Icons.fiber_manual_record : Icons.radio_button_checked,
+                      size: 12,
+                      color: widget.isOnline ? Colors.green : Colors.red,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      widget.isOnline ? 'Koneksi Terhubung' : 'Koneksi Terputus',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: widget.isOnline ? Colors.green : Colors.red,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ],
       ),
