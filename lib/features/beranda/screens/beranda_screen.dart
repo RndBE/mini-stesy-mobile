@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../chatbot/screens/chatbot_screen.dart';
 import '../../../core/constants/api_constants.dart';
 import '../../auth/data/auth_repository.dart';
 import '../../auth/models/user_model.dart';
@@ -204,6 +205,7 @@ class _BerandaScreenState extends State<BerandaScreen> {
 
     return Scaffold(
       backgroundColor: colorPrimaryDark, // Status bar akan berwarna biru
+      floatingActionButton: _buildChatbotFab(colorPrimaryDark),
       body: SafeArea(
         bottom: false,
         child: Container(
@@ -636,6 +638,81 @@ class _BerandaScreenState extends State<BerandaScreen> {
           ],
         ),
       ),
+      ),
+    );
+  }
+
+  Widget _buildChatbotFab(Color primaryColor) {
+    return Container(
+      width: 58,
+      height: 58,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [primaryColor, primaryColor.withValues(alpha: 0.85)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: primaryColor.withValues(alpha: 0.45),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () {
+            Navigator.push(
+              context,
+              PageRouteBuilder(
+                pageBuilder: (context, animation, secondaryAnimation) =>
+                    const ChatbotScreen(),
+                transitionsBuilder:
+                    (context, animation, secondaryAnimation, child) {
+                  return SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0, 1),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    )),
+                    child: child,
+                  );
+                },
+                transitionDuration: const Duration(milliseconds: 350),
+              ),
+            );
+          },
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(
+                Icons.smart_toy_rounded,
+                color: Colors.white,
+                size: 26,
+              ),
+              // Notification dot
+              Positioned(
+                top: 10,
+                right: 10,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    color: Colors.greenAccent.shade400,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 1.5),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

@@ -28,4 +28,7 @@ class ApiEndpoints {
   // ── Analisa ─────────────────────────────────────────
   static String analisaIndex(String id) => '$kApiPrefix/analisa/$id';
   static String analisaData(String id)  => '$kApiPrefix/analisa/$id/data';
+
+  // ── Chatbot ──────────────────────────────────────────
+  static const String chatbotAsk = '$kApiPrefix/chatbot/ask';
 }
