@@ -57,6 +57,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
 
   String _currentParameterName = '';
   String? _displayName;
+  String _tipeGraf = 'line';
   List<Map<String, dynamic>> _availableParams = [];
 
   DateTime _selectedDate = DateTime.now();
@@ -183,6 +184,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           );
           column = matchedParam['kolom_sensor'] ?? '';
           _satuan = matchedParam['satuan'] ?? '';
+          _tipeGraf = matchedParam['tipe_graf']?.toString() ?? 'line';
           _currentParameterName = matchedParam['nama_parameter'] ?? _currentParameterName;
           _displayName = _currentParameterName;
         }
@@ -710,9 +712,28 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
     );
   }
 
-  Widget _buildChartCard() {
-    final chartColor = widget.isOnline ? Colors.blue : Colors.grey;
+  // Warna intensitas hujan per jam — matching website implementation
+  Color _getRainfallColor(double val) {
+    if (val <= 0) return const Color(0xFF84C450);   // Tidak Hujan
+    if (val < 1)  return const Color(0xFF70CDDD);   // Sangat Ringan
+    if (val < 5)  return const Color(0xFF35549D);   // Ringan
+    if (val < 10) return const Color(0xFFFEF216);   // Sedang
+    if (val < 20) return const Color(0xFFF47E2C);   // Lebat
+    return const Color(0xFFED1C24);                  // Sangat Lebat
+  }
 
+  String _getRainfallLabel(double val) {
+    if (val <= 0) return 'Tidak Hujan';
+    if (val < 1)  return 'Hujan Sangat Ringan';
+    if (val < 5)  return 'Hujan Ringan';
+    if (val < 10) return 'Hujan Sedang';
+    if (val < 20) return 'Hujan Lebat';
+    return 'Hujan Sangat Lebat';
+  }
+
+  bool get _isBarChart => _tipeGraf == 'bar';
+
+  Widget _buildChartCard() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -720,7 +741,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -729,7 +750,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       child: Column(
         children: [
           Text(
-            'Rerata ${_formatParamName(_currentParameterName)} ${_satuan.isNotEmpty ? '($_satuan)' : ''}',
+            _isBarChart
+                ? '${_formatParamName(_currentParameterName)} ${_satuan.isNotEmpty ? '($_satuan)' : ''}'
+                : 'Rerata ${_formatParamName(_currentParameterName)} ${_satuan.isNotEmpty ? '($_satuan)' : ''}',
             style: const TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -752,7 +775,7 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.show_chart, size: 48, color: Colors.grey.shade300),
+                    Icon(_isBarChart ? Icons.bar_chart : Icons.show_chart, size: 48, color: Colors.grey.shade300),
                     const SizedBox(height: 16),
                     Text('Tidak ada data tersedia pada rentang waktu ini.',
                          textAlign: TextAlign.center,
@@ -764,202 +787,331 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           else
             SizedBox(
               height: 250,
-              child: SfCartesianChart(
-                margin: const EdgeInsets.all(0),
-                trackballBehavior: TrackballBehavior(
-                  enable: true,
-                  activationMode: ActivationMode.singleTap,
-                  tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
-                  builder: (BuildContext context, TrackballDetails trackballDetails) {
-                    final modeInfo = trackballDetails.groupingModeInfo;
-                    if (modeInfo == null || modeInfo.points.isEmpty) return const SizedBox.shrink();
-                    
-                    final firstPoint = modeInfo.points.first;
-                    String timeLabel = '';
-                    if (firstPoint.x is DateTime) {
-                      final DateTime time = firstPoint.x;
-                      if (_selectedRange == 'Hari') {
-                        timeLabel = DateFormat('HH:mm').format(time);
-                      } else if (_selectedRange == 'Rentang') {
-                        timeLabel = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(time);
-                      } else if (_selectedRange == 'Tahun') {
-                        timeLabel = DateFormat('MMMM yyyy', 'id_ID').format(time);
-                      } else {
-                        timeLabel = DateFormat('dd MMM yyyy', 'id_ID').format(time);
-                      }
-                    }
-
-                    Widget? rerataRow;
-                    Widget? minRow;
-                    Widget? maksRow;
-
-                    for (int i = 0; i < modeInfo.points.length; i++) {
-                      final point = modeInfo.points[i];
-                      final series = modeInfo.visibleSeriesList[i];
-                      final seriesName = series.name;
-
-                      if (seriesName != null && seriesName.isNotEmpty) {
-                        Color dotColor = Colors.black;
-                        String labelName = seriesName;
-                        if (seriesName == 'Maks') {
-                          dotColor = const Color(0xFF4F46E5);
-                          labelName = 'Maksimum';
-                        } else if (seriesName == 'Rerata') {
-                          dotColor = const Color(0xFF1E3A8A);
-                        } else if (seriesName == 'Min') {
-                          dotColor = const Color(0xFF38BDF8);
-                          labelName = 'Minimum';
-                        }
-
-                        final yValue = point.y;
-                        final yString = yValue is double ? yValue.toStringAsFixed(2) : yValue.toString();
-
-                        final row = Padding(
-                          padding: const EdgeInsets.only(bottom: 4),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text('● ', style: TextStyle(color: dotColor, fontSize: 14)),
-                              Text('$labelName: ', style: const TextStyle(color: Colors.black87, fontSize: 12)),
-                              Text('$yString $_satuan', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
-                            ],
-                          ),
-                        );
-
-                        if (seriesName == 'Rerata') {
-                          rerataRow = row;
-                        } else if (seriesName == 'Min') minRow = row;
-                        else if (seriesName == 'Maks') maksRow = row;
-                      }
-                    }
-
-                    List<Widget> rows = [];
-                    if (rerataRow != null) rows.add(rerataRow);
-                    if (minRow != null) rows.add(minRow);
-                    if (maksRow != null) rows.add(maksRow);
-
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.black12),
-                        boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
-                      ),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          if (timeLabel.isNotEmpty) ...[
-                            Text(timeLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
-                            const SizedBox(height: 6),
-                            Container(height: 1, width: 120, color: Colors.black12),
-                            const SizedBox(height: 6),
-                          ],
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: rows,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  markerSettings: const TrackballMarkerSettings(
-                    markerVisibility: TrackballVisibilityMode.visible,
-                    height: 10,
-                    width: 10,
-                    borderWidth: 2,
-                  ),
-                  lineType: TrackballLineType.vertical,
-                  lineColor: Colors.grey.withOpacity(0.5),
-                  lineWidth: 1,
-                ),
-                zoomPanBehavior: ZoomPanBehavior(
-                  enablePinching: true,
-                  enablePanning: true,
-                ),
-                primaryXAxis: DateTimeAxis(
-                  dateFormat: _selectedRange == 'Hari' ? DateFormat('HH:mm') : 
-                              _selectedRange == 'Tahun' ? DateFormat('MMM yy') : DateFormat('dd MMM'),
-                  majorGridLines: const MajorGridLines(width: 0),
-                  intervalType: _selectedRange == 'Hari' ? DateTimeIntervalType.hours : 
-                                _selectedRange == 'Tahun' ? DateTimeIntervalType.months : DateTimeIntervalType.days,
-                  labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
-                ),
-                primaryYAxis: NumericAxis(
-                  minimum: _minY,
-                  maximum: _maxY,
-                  interval: _intervalY,
-                  axisLine: const AxisLine(width: 0),
-                  majorTickLines: const MajorTickLines(size: 0),
-                  majorGridLines: MajorGridLines(color: Colors.grey.shade200),
-                  labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
-                ),
-                series: <CartesianSeries>[
-                  // Shaded Area (between min and max)
-                  RangeAreaSeries<ChartData, DateTime>(
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.time,
-                    highValueMapper: (ChartData data, _) => data.maks,
-                    lowValueMapper: (ChartData data, _) => data.min,
-                    color: const Color(0xFF4F46E5).withOpacity(0.1),
-                    animationDuration: 1000,
-                    enableTooltip: false,
-                  ),
-                  // Max Line
-                  FastLineSeries<ChartData, DateTime>(
-                    name: 'Maks',
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.time,
-                    yValueMapper: (ChartData data, _) => data.maks,
-                    color: const Color(0xFF4F46E5),
-                    dashArray: <double>[5, 5],
-                    width: 2,
-                    animationDuration: 1000,
-                  ),
-                  // Min Line
-                  FastLineSeries<ChartData, DateTime>(
-                    name: 'Min',
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.time,
-                    yValueMapper: (ChartData data, _) => data.min,
-                    color: const Color(0xFF38BDF8),
-                    dashArray: <double>[5, 5],
-                    width: 2,
-                    animationDuration: 1000,
-                  ),
-                  // Rerata Line
-                  FastLineSeries<ChartData, DateTime>(
-                    name: 'Rerata',
-                    dataSource: _chartData,
-                    xValueMapper: (ChartData data, _) => data.time,
-                    yValueMapper: (ChartData data, _) => data.rerata,
-                    color: const Color(0xFF1E3A8A),
-                    width: 2,
-                    markerSettings: const MarkerSettings(
-                      isVisible: true,
-                      color: Colors.white,
-                      borderColor: Color(0xFF1E3A8A),
-                      borderWidth: 2,
-                    ),
-                    animationDuration: 1000,
-                  ),
-                ],
-              ),
+              child: _isBarChart ? _buildBarChart() : _buildLineChart(),
             ),
           const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildLegendItem(const Color(0xFF4F46E5), 'Maks'),
-              const SizedBox(width: 16),
-              _buildLegendItem(const Color(0xFF38BDF8), 'Min'),
-              const SizedBox(width: 16),
-              _buildLegendItem(const Color(0xFF1E3A8A), 'Rerata', isCircle: true),
-            ],
-          ),
+          _isBarChart ? _buildRainfallLegend() : _buildLineLegend(),
         ],
       ),
+    );
+  }
+
+  Widget _buildBarChart() {
+    return SfCartesianChart(
+      margin: const EdgeInsets.all(0),
+      tooltipBehavior: TooltipBehavior(
+        enable: true,
+        builder: (dynamic data, dynamic point, dynamic series, int pointIndex, int seriesIndex) {
+          final chartData = data as ChartData;
+          final val = chartData.rerata;
+          final valStr = val.toStringAsFixed(2);
+          final color = _getRainfallColor(val);
+          final label = _getRainfallLabel(val);
+
+          String timeLabel = '';
+          if (_selectedRange == 'Hari') {
+            timeLabel = DateFormat('HH:mm').format(chartData.time);
+          } else if (_selectedRange == 'Rentang') {
+            timeLabel = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(chartData.time);
+          } else if (_selectedRange == 'Tahun') {
+            timeLabel = DateFormat('MMMM yyyy', 'id_ID').format(chartData.time);
+          } else {
+            timeLabel = DateFormat('dd MMM yyyy', 'id_ID').format(chartData.time);
+          }
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.black12),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(timeLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
+                const SizedBox(height: 6),
+                Container(height: 1, width: 120, color: Colors.black12),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(width: 10, height: 10, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
+                    const SizedBox(width: 6),
+                    Text('$valStr $_satuan', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(label, style: TextStyle(fontSize: 11, color: Colors.grey.shade600, fontWeight: FontWeight.w600)),
+              ],
+            ),
+          );
+        },
+      ),
+      zoomPanBehavior: ZoomPanBehavior(
+        enablePinching: true,
+        enablePanning: true,
+      ),
+      primaryXAxis: DateTimeAxis(
+        dateFormat: _selectedRange == 'Hari' ? DateFormat('HH:mm') :
+                    _selectedRange == 'Tahun' ? DateFormat('MMM yy') : DateFormat('dd MMM'),
+        majorGridLines: const MajorGridLines(width: 0),
+        intervalType: _selectedRange == 'Hari' ? DateTimeIntervalType.hours :
+                      _selectedRange == 'Tahun' ? DateTimeIntervalType.months : DateTimeIntervalType.days,
+        labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+      ),
+      primaryYAxis: NumericAxis(
+        minimum: 0,
+        maximum: _maxY,
+        interval: _intervalY,
+        axisLine: const AxisLine(width: 0),
+        majorTickLines: const MajorTickLines(size: 0),
+        majorGridLines: MajorGridLines(color: Colors.grey.shade200),
+        labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+        labelFormat: '{value} mm',
+      ),
+      series: <CartesianSeries>[
+        ColumnSeries<ChartData, DateTime>(
+          name: 'Curah Hujan',
+          dataSource: _chartData,
+          xValueMapper: (ChartData data, _) => data.time,
+          yValueMapper: (ChartData data, _) => data.rerata,
+          pointColorMapper: (ChartData data, _) => _getRainfallColor(data.rerata),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(2)),
+          width: 0.6,
+          spacing: 0.3,
+          animationDuration: 1000,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLineChart() {
+    return SfCartesianChart(
+      margin: const EdgeInsets.all(0),
+      trackballBehavior: TrackballBehavior(
+        enable: true,
+        activationMode: ActivationMode.singleTap,
+        tooltipDisplayMode: TrackballDisplayMode.groupAllPoints,
+        builder: (BuildContext context, TrackballDetails trackballDetails) {
+          final modeInfo = trackballDetails.groupingModeInfo;
+          if (modeInfo == null || modeInfo.points.isEmpty) return const SizedBox.shrink();
+
+          final firstPoint = modeInfo.points.first;
+          String timeLabel = '';
+          if (firstPoint.x is DateTime) {
+            final DateTime time = firstPoint.x;
+            if (_selectedRange == 'Hari') {
+              timeLabel = DateFormat('HH:mm').format(time);
+            } else if (_selectedRange == 'Rentang') {
+              timeLabel = DateFormat('dd MMM yyyy, HH:mm', 'id_ID').format(time);
+            } else if (_selectedRange == 'Tahun') {
+              timeLabel = DateFormat('MMMM yyyy', 'id_ID').format(time);
+            } else {
+              timeLabel = DateFormat('dd MMM yyyy', 'id_ID').format(time);
+            }
+          }
+
+          Widget? rerataRow;
+          Widget? minRow;
+          Widget? maksRow;
+
+          for (int i = 0; i < modeInfo.points.length; i++) {
+            final point = modeInfo.points[i];
+            final series = modeInfo.visibleSeriesList[i];
+            final seriesName = series.name;
+
+            if (seriesName != null && seriesName.isNotEmpty) {
+              Color dotColor = Colors.black;
+              String labelName = seriesName;
+              if (seriesName == 'Maks') {
+                dotColor = const Color(0xFF4F46E5);
+                labelName = 'Maksimum';
+              } else if (seriesName == 'Rerata') {
+                dotColor = const Color(0xFF1E3A8A);
+              } else if (seriesName == 'Min') {
+                dotColor = const Color(0xFF38BDF8);
+                labelName = 'Minimum';
+              }
+
+              final yValue = point.y;
+              final yString = yValue is double ? yValue.toStringAsFixed(2) : yValue.toString();
+
+              final row = Padding(
+                padding: const EdgeInsets.only(bottom: 4),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('● ', style: TextStyle(color: dotColor, fontSize: 14)),
+                    Text('$labelName: ', style: const TextStyle(color: Colors.black87, fontSize: 12)),
+                    Text('$yString $_satuan', style: const TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 12)),
+                  ],
+                ),
+              );
+
+              if (seriesName == 'Rerata') {
+                rerataRow = row;
+              } else if (seriesName == 'Min') { minRow = row; }
+              else if (seriesName == 'Maks') { maksRow = row; }
+            }
+          }
+
+          List<Widget> rows = [];
+          if (rerataRow != null) rows.add(rerataRow);
+          if (minRow != null) rows.add(minRow);
+          if (maksRow != null) rows.add(maksRow);
+
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Colors.black12),
+              boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 4)],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                if (timeLabel.isNotEmpty) ...[
+                  Text(timeLabel, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Colors.black)),
+                  const SizedBox(height: 6),
+                  Container(height: 1, width: 120, color: Colors.black12),
+                  const SizedBox(height: 6),
+                ],
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: rows,
+                ),
+              ],
+            ),
+          );
+        },
+        markerSettings: const TrackballMarkerSettings(
+          markerVisibility: TrackballVisibilityMode.visible,
+          height: 10,
+          width: 10,
+          borderWidth: 2,
+        ),
+        lineType: TrackballLineType.vertical,
+        lineColor: Colors.grey.withValues(alpha: 0.5),
+        lineWidth: 1,
+      ),
+      zoomPanBehavior: ZoomPanBehavior(
+        enablePinching: true,
+        enablePanning: true,
+      ),
+      primaryXAxis: DateTimeAxis(
+        dateFormat: _selectedRange == 'Hari' ? DateFormat('HH:mm') :
+                    _selectedRange == 'Tahun' ? DateFormat('MMM yy') : DateFormat('dd MMM'),
+        majorGridLines: const MajorGridLines(width: 0),
+        intervalType: _selectedRange == 'Hari' ? DateTimeIntervalType.hours :
+                      _selectedRange == 'Tahun' ? DateTimeIntervalType.months : DateTimeIntervalType.days,
+        labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+      ),
+      primaryYAxis: NumericAxis(
+        minimum: _minY,
+        maximum: _maxY,
+        interval: _intervalY,
+        axisLine: const AxisLine(width: 0),
+        majorTickLines: const MajorTickLines(size: 0),
+        majorGridLines: MajorGridLines(color: Colors.grey.shade200),
+        labelStyle: TextStyle(fontSize: 10, color: Colors.grey.shade600, fontWeight: FontWeight.bold),
+      ),
+      series: <CartesianSeries>[
+        RangeAreaSeries<ChartData, DateTime>(
+          dataSource: _chartData,
+          xValueMapper: (ChartData data, _) => data.time,
+          highValueMapper: (ChartData data, _) => data.maks,
+          lowValueMapper: (ChartData data, _) => data.min,
+          color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
+          animationDuration: 1000,
+          enableTooltip: false,
+        ),
+        FastLineSeries<ChartData, DateTime>(
+          name: 'Maks',
+          dataSource: _chartData,
+          xValueMapper: (ChartData data, _) => data.time,
+          yValueMapper: (ChartData data, _) => data.maks,
+          color: const Color(0xFF4F46E5),
+          dashArray: <double>[5, 5],
+          width: 2,
+          animationDuration: 1000,
+        ),
+        FastLineSeries<ChartData, DateTime>(
+          name: 'Min',
+          dataSource: _chartData,
+          xValueMapper: (ChartData data, _) => data.time,
+          yValueMapper: (ChartData data, _) => data.min,
+          color: const Color(0xFF38BDF8),
+          dashArray: <double>[5, 5],
+          width: 2,
+          animationDuration: 1000,
+        ),
+        FastLineSeries<ChartData, DateTime>(
+          name: 'Rerata',
+          dataSource: _chartData,
+          xValueMapper: (ChartData data, _) => data.time,
+          yValueMapper: (ChartData data, _) => data.rerata,
+          color: const Color(0xFF1E3A8A),
+          width: 2,
+          markerSettings: const MarkerSettings(
+            isVisible: true,
+            color: Colors.white,
+            borderColor: Color(0xFF1E3A8A),
+            borderWidth: 2,
+          ),
+          animationDuration: 1000,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRainfallLegend() {
+    final legends = [
+      (const Color(0xFF84C450), 'Tidak Hujan', '0 mm'),
+      (const Color(0xFF70CDDD), 'Sangat Ringan', '0.1 – 1 mm'),
+      (const Color(0xFF35549D), 'Ringan', '1 – 5 mm'),
+      (const Color(0xFFFEF216), 'Sedang', '5 – 10 mm'),
+      (const Color(0xFFF47E2C), 'Lebat', '10 – 20 mm'),
+      (const Color(0xFFED1C24), 'Sangat Lebat', '≥ 20 mm'),
+    ];
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 6,
+      children: legends.map((e) => Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 14,
+            height: 14,
+            decoration: BoxDecoration(
+              color: e.$1,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+          const SizedBox(width: 4),
+          Text(
+            e.$2,
+            style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+          ),
+        ],
+      )).toList(),
+    );
+  }
+
+  Widget _buildLineLegend() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _buildLegendItem(const Color(0xFF4F46E5), 'Maks'),
+        const SizedBox(width: 16),
+        _buildLegendItem(const Color(0xFF38BDF8), 'Min'),
+        const SizedBox(width: 16),
+        _buildLegendItem(const Color(0xFF1E3A8A), 'Rerata', isCircle: true),
+      ],
     );
   }
 
