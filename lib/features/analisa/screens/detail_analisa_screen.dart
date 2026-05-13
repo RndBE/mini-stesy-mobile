@@ -59,6 +59,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   String? _displayName;
   String _tipeGraf = 'line';
   List<Map<String, dynamic>> _availableParams = [];
+  bool _showMaksLine = true;
+  bool _showMinLine = true;
+  bool _showRerataLine = true;
 
   DateTime _selectedDate = DateTime.now();
   DateTime _selectedMonth = DateTime.now();
@@ -917,12 +920,12 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           Widget? minRow;
           Widget? maksRow;
 
-          for (int i = 0; i < modeInfo.points.length; i++) {
+          for (int i = 0; i < modeInfo.points.length && i < modeInfo.visibleSeriesList.length; i++) {
             final point = modeInfo.points[i];
             final series = modeInfo.visibleSeriesList[i];
             final seriesName = series.name;
 
-            if (seriesName != null && seriesName.isNotEmpty) {
+            if (seriesName == 'Maks' || seriesName == 'Min' || seriesName == 'Rerata') {
               Color dotColor = Colors.black;
               String labelName = seriesName;
               if (seriesName == 'Maks') {
@@ -1021,17 +1024,33 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
       ),
       series: <CartesianSeries>[
         RangeAreaSeries<ChartData, DateTime>(
-          dataSource: _chartData,
+          key: const ValueKey('area-maks-rerata'),
+          dataSource: _showMaksLine && _showRerataLine ? _chartData : const <ChartData>[],
           xValueMapper: (ChartData data, _) => data.time,
           highValueMapper: (ChartData data, _) => data.maks,
-          lowValueMapper: (ChartData data, _) => data.min,
+          lowValueMapper: (ChartData data, _) => data.rerata,
           color: const Color(0xFF4F46E5).withValues(alpha: 0.1),
           animationDuration: 1000,
           enableTooltip: false,
+          enableTrackball: false,
+          isVisibleInLegend: false,
+        ),
+        RangeAreaSeries<ChartData, DateTime>(
+          key: const ValueKey('area-rerata-min'),
+          dataSource: _showMinLine && _showRerataLine ? _chartData : const <ChartData>[],
+          xValueMapper: (ChartData data, _) => data.time,
+          highValueMapper: (ChartData data, _) => data.rerata,
+          lowValueMapper: (ChartData data, _) => data.min,
+          color: const Color(0xFF60A5FA).withValues(alpha: 0.1),
+          animationDuration: 1000,
+          enableTooltip: false,
+          enableTrackball: false,
+          isVisibleInLegend: false,
         ),
         FastLineSeries<ChartData, DateTime>(
+          key: const ValueKey('line-maks'),
           name: 'Maks',
-          dataSource: _chartData,
+          dataSource: _showMaksLine ? _chartData : const <ChartData>[],
           xValueMapper: (ChartData data, _) => data.time,
           yValueMapper: (ChartData data, _) => data.maks,
           color: const Color(0xFF4F46E5),
@@ -1040,8 +1059,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           animationDuration: 1000,
         ),
         FastLineSeries<ChartData, DateTime>(
+          key: const ValueKey('line-min'),
           name: 'Min',
-          dataSource: _chartData,
+          dataSource: _showMinLine ? _chartData : const <ChartData>[],
           xValueMapper: (ChartData data, _) => data.time,
           yValueMapper: (ChartData data, _) => data.min,
           color: const Color(0xFF38BDF8),
@@ -1050,8 +1070,9 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
           animationDuration: 1000,
         ),
         FastLineSeries<ChartData, DateTime>(
+          key: const ValueKey('line-rerata'),
           name: 'Rerata',
-          dataSource: _chartData,
+          dataSource: _showRerataLine ? _chartData : const <ChartData>[],
           xValueMapper: (ChartData data, _) => data.time,
           yValueMapper: (ChartData data, _) => data.rerata,
           color: const Color(0xFF1E3A8A),
@@ -1103,49 +1124,103 @@ class _DetailAnalisaScreenState extends State<DetailAnalisaScreen> {
   }
 
   Widget _buildLineLegend() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+    return Wrap(
+      alignment: WrapAlignment.center,
+      spacing: 12,
+      runSpacing: 6,
       children: [
-        _buildLegendItem(const Color(0xFF4F46E5), 'Maks'),
-        const SizedBox(width: 16),
-        _buildLegendItem(const Color(0xFF38BDF8), 'Min'),
-        const SizedBox(width: 16),
-        _buildLegendItem(const Color(0xFF1E3A8A), 'Rerata', isCircle: true),
+        _buildLegendItem(
+          const Color(0xFF4F46E5),
+          'Maks',
+          isActive: _showMaksLine,
+          onTap: () => setState(() => _showMaksLine = !_showMaksLine),
+        ),
+        _buildLegendItem(
+          const Color(0xFF38BDF8),
+          'Min',
+          isActive: _showMinLine,
+          onTap: () => setState(() => _showMinLine = !_showMinLine),
+        ),
+        _buildLegendItem(
+          const Color(0xFF1E3A8A),
+          'Rerata',
+          isCircle: true,
+          isActive: _showRerataLine,
+          onTap: () => setState(() => _showRerataLine = !_showRerataLine),
+        ),
       ],
     );
   }
 
-  Widget _buildLegendItem(Color color, String label, {bool isCircle = false}) {
-    return Row(
-      children: [
-        Container(
-          width: 12,
-          height: 2,
-          color: isCircle ? Colors.transparent : color,
-          child: isCircle
-              ? Center(
-                  child: Container(
-                    width: 6,
-                    height: 6,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: color, width: 2),
-                    ),
+  Widget _buildLegendItem(
+    Color color,
+    String label, {
+    bool isCircle = false,
+    required bool isActive,
+    required VoidCallback onTap,
+  }) {
+    final activeColor = isActive ? color : Colors.grey.shade400;
+    final textColor = isActive ? Colors.grey.shade700 : Colors.grey.shade500;
+
+    return Semantics(
+      button: true,
+      selected: isActive,
+      label: '${isActive ? 'Sembunyikan' : 'Tampilkan'} garis $label',
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(999),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+            decoration: BoxDecoration(
+              color: isActive ? color.withValues(alpha: 0.08) : Colors.grey.shade100,
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isActive ? color.withValues(alpha: 0.35) : Colors.grey.shade300,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 10,
+                  child: Center(
+                    child: isCircle
+                        ? Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              shape: BoxShape.circle,
+                              border: Border.all(color: activeColor, width: 2),
+                            ),
+                          )
+                        : Container(
+                            width: 14,
+                            height: 2,
+                            color: activeColor,
+                          ),
                   ),
-                )
-              : null,
-        ),
-        const SizedBox(width: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 10,
-            fontWeight: FontWeight.bold,
-            color: Colors.grey.shade700,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    decoration: isActive ? TextDecoration.none : TextDecoration.lineThrough,
+                    decorationColor: textColor,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 
