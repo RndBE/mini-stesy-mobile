@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../data/chatbot_repository.dart';
@@ -555,7 +556,7 @@ class _TypingDotsState extends State<_TypingDots>
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1200),
+      duration: const Duration(milliseconds: 1400),
     )..repeat();
   }
 
@@ -573,20 +574,30 @@ class _TypingDotsState extends State<_TypingDots>
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: List.generate(3, (index) {
-            final delay = index * 0.2;
-            final value = (_controller.value - delay).clamp(0.0, 1.0);
-            final bounce = (value < 0.5) ? (value * 2) : (2 - value * 2);
+            // Smooth sine wave animation
+            final t = (_controller.value * 2 * math.pi) - (index * 0.6);
+            final bounce = (math.sin(t) + 1) / 2; // maps from 0.0 to 1.0
+
             return Padding(
-              padding: EdgeInsets.only(right: index < 2 ? 4 : 0),
+              padding: EdgeInsets.only(right: index < 2 ? 6 : 0),
               child: Transform.translate(
-                offset: Offset(0, -4 * bounce),
+                offset: Offset(0, -5 * bounce),
                 child: Container(
-                  width: 8,
-                  height: 8,
+                  width: 8 + (2 * bounce),
+                  height: 8 + (2 * bounce),
                   decoration: BoxDecoration(
                     color: const Color(0xFF2B3377)
-                        .withValues(alpha: 0.3 + 0.5 * bounce),
+                        .withValues(alpha: 0.3 + 0.7 * bounce),
                     shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF2B3377)
+                            .withValues(alpha: 0.4 * bounce),
+                        blurRadius: 6,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                 ),
               ),
