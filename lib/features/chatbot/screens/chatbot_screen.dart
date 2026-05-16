@@ -110,6 +110,7 @@ class _ChatbotScreenState extends State<ChatbotScreen>
         _scrollToBottom();
       }
     } catch (e) {
+      debugPrint('[Chatbot] Error: $e');
       if (mounted) {
         final fallback = _localFallbackReply(trimmed);
         setState(() {
